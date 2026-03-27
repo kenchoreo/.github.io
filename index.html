@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USD Standard (USDS) | Official TRC-20 Stable Protocol</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #020408;
+            color: #ffffff;
+            overflow-x: hidden;
+            scroll-behavior: smooth;
+        }
+
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+        }
+
+        .glass-nav {
+            background: rgba(2, 4, 8, 0.7);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Space Background Elements */
+        .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.3;
+            z-index: -2;
+        }
+
+        /* The Earth and Halo Effect */
+        .space-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .halo {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.4) 0%, rgba(37, 99, 235, 0.1) 40%, rgba(0, 0, 0, 0) 70%);
+            border-radius: 50%;
+            filter: blur(40px);
+            animation: pulse 8s infinite alternate;
+        }
+
+        .earth {
+            position: absolute;
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle at 50% 120%, rgba(15, 23, 42, 1) 0%, rgba(2, 4, 8, 1) 80%);
+            border-radius: 50%;
+            box-shadow: inset 0 -20px 50px rgba(0, 0, 0, 1), 0 0 20px rgba(37, 99, 235, 0.2);
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); opacity: 0.6; }
+            to { transform: scale(1.1); opacity: 0.9; }
+        }
+
+        /* Vertical Gradient for Headings */
+        .text-gradient {
+            background: linear-gradient(to bottom, #ffffff 30%, #64748b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .btn-primary {
+            background: linear-gradient(to bottom, #2563eb 0%, #1d4ed8 100%);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(37, 99, 235, 0.25);
+            filter: brightness(1.1);
+        }
+
+        .stat-label {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        /* FAQ Transition */
+        .faq-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease-out;
+        }
+        .faq-item.active .faq-content {
+            max-height: 300px;
+        }
+        .faq-item.active .faq-icon {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass-nav">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-xl shadow-lg shadow-blue-900/40 text-white">S</div>
+                <span class="text-xl font-bold tracking-tight uppercase">USD Standard</span>
+            </div>
+            <div class="hidden md:flex space-x-10 text-xs font-semibold uppercase tracking-widest text-slate-400">
+                <a href="#protocol" class="hover:text-white transition">Protocol</a>
+                <a href="#tokenomics" class="hover:text-white transition">Tokenomics</a>
+                <a href="#faq" class="hover:text-white transition">FAQ</a>
+            </div>
+            <a href="https://sunswap.com" target="_blank" class="btn-primary px-7 py-2.5 rounded-full text-sm font-bold uppercase tracking-wider text-white">
+                Get USDS
+            </a>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="protocol" class="relative min-h-screen flex items-center pt-20 overflow-hidden px-6">
+        <div class="stars"></div>
+        <div class="space-container">
+            <div class="halo"></div>
+            <div class="earth"></div>
+        </div>
+
+        <div class="max-w-5xl mx-auto text-center relative z-10">
+            <div class="inline-block px-4 py-1.5 mb-8 glass rounded-full">
+                <span class="text-[10px] font-bold tracking-[0.2em] text-blue-400 uppercase">Deployed on TRON Network</span>
+            </div>
+            <h1 class="text-6xl md:text-8xl font-extrabold mb-8 text-gradient leading-tight">
+                A New Era of Stability
+            </h1>
+            <p class="text-lg md:text-xl text-slate-300 mb-12 max-w-2xl mx-auto leading-relaxed font-light">
+                USD Standard (USDS) is a premier TRC-20 stablecoin protocol engineered for high-frequency transactions and transparent institutional-grade liquidity.
+            </p>
+            
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-20">
+                <div class="glass px-8 py-4 flex items-center space-x-4">
+                    <span class="stat-label">Contract:</span>
+                    <span class="text-sm font-mono text-blue-400 font-medium tracking-tight">TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+                </div>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass p-10 text-left group">
+                    <div class="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center mb-8 border border-blue-500/20 group-hover:bg-blue-500/20 transition-all">
+                        <svg class="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-4 uppercase tracking-wide">TRON Velocity</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Experience sub-3-second block finality. Built for the fastest decentralized ecosystem in the world.</p>
+                </div>
+                <div class="glass p-10 text-left group">
+                    <div class="w-12 h-12 bg-indigo-500/10 rounded-2xl flex items-center justify-center mb-8 border border-indigo-500/20 group-hover:bg-indigo-500/20 transition-all">
+                        <svg class="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-4 uppercase tracking-wide">Fully Verified</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">Source code is open, verified, and audited on TronScan to ensure total architectural transparency.</p>
+                </div>
+                <div class="glass p-10 text-left group">
+                    <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-8 border border-emerald-500/20 group-hover:bg-emerald-500/20 transition-all">
+                        <svg class="w-6 h-6 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold mb-4 uppercase tracking-wide">Zero Fee Model</h3>
+                    <p class="text-slate-500 text-sm leading-relaxed">0% Buy and Sell tax. Optimized for seamless arbitrage and enterprise-level value transfer.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tokenomics Section -->
+    <section id="tokenomics" class="py-24 px-6 border-t border-white/5 bg-white/[0.01]">
+        <div class="max-w-5xl mx-auto">
+            <div class="glass p-12 md:p-20 relative overflow-hidden">
+                <div class="relative z-10 flex flex-col md:flex-row items-center gap-16">
+                    <div class="md:w-3/5">
+                        <h2 class="text-4xl font-extrabold mb-8 uppercase tracking-tight">Tokenomics</h2>
+                        <p class="text-slate-400 mb-10 leading-relaxed font-light">The USDS mathematical model is built on fixed supply mechanics and immutable protocol rules.</p>
+                        <div class="space-y-6">
+                            <div class="flex justify-between items-end border-b border-white/10 pb-4">
+                                <span class="stat-label">Total Supply</span>
+                                <span class="text-xl font-bold font-mono">10,000,000,000</span>
+                            </div>
+                            <div class="flex justify-between items-end border-b border-white/10 pb-4">
+                                <span class="stat-label">Blockchain</span>
+                                <span class="text-xl font-bold font-mono text-red-500 uppercase">Tron (TRC-20)</span>
+                            </div>
+                            <div class="flex justify-between items-end border-b border-white/10 pb-4">
+                                <span class="stat-label">Initial Liquidity</span>
+                                <span class="text-xl font-bold font-mono text-blue-400">Locked on Launch</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="md:w-2/5 flex flex-col items-center">
+                        <div class="relative w-56 h-56">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="112" cy="112" r="100" stroke="currentColor" stroke-width="12" fill="transparent" class="text-white/5"/>
+                                <circle cx="112" cy="112" r="100" stroke="currentColor" stroke-width="12" fill="transparent" stroke-dasharray="628" stroke-dashoffset="0" class="text-blue-600"/>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-4xl font-black">100%</span>
+                                <span class="stat-label text-[9px]">LP Distribution</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section id="faq" class="py-32 px-6">
+        <div class="max-w-3xl mx-auto">
+            <h2 class="text-4xl font-extrabold mb-16 text-center text-gradient uppercase tracking-tight">Frequently Asked Questions</h2>
+            
+            <div class="space-y-4">
+                <!-- FAQ Item 1 -->
+                <div class="glass faq-item overflow-hidden transition-all duration-300">
+                    <button class="w-full px-8 py-6 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                        <span class="font-bold text-slate-200 tracking-wide">What is USD Standard (USDS)?</span>
+                        <svg class="w-5 h-5 text-slate-500 faq-icon transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="faq-content px-8">
+                        <p class="pb-6 text-slate-400 text-sm leading-relaxed">
+                            USD Standard is a decentralized stablecoin protocol running on the TRON blockchain. It maintains a 1:1 price peg through automated liquidity pools and smart contract architecture, designed for fast and low-cost value transfers.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="glass faq-item overflow-hidden transition-all duration-300">
+                    <button class="w-full px-8 py-6 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                        <span class="font-bold text-slate-200 tracking-wide">Why did you choose the TRON network?</span>
+                        <svg class="w-5 h-5 text-slate-500 faq-icon transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="faq-content px-8">
+                        <p class="pb-6 text-slate-400 text-sm leading-relaxed">
+                            TRON offers industry-leading throughput and transaction finality. By using the TRC-20 standard, USDS users benefit from significantly lower gas fees compared to Ethereum and better scalability for high-frequency trading.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 3 -->
+                <div class="glass faq-item overflow-hidden transition-all duration-300">
+                    <button class="w-full px-8 py-6 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                        <span class="font-bold text-slate-200 tracking-wide">Is the liquidity locked?</span>
+                        <svg class="w-5 h-5 text-slate-500 faq-icon transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="faq-content px-8">
+                        <p class="pb-6 text-slate-400 text-sm leading-relaxed">
+                            Yes. To ensure project stability and prevent "rug pulls," the initial liquidity pool tokens are locked in a time-locked smart contract for a minimum of 14 days, with options for institutional extensions.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- FAQ Item 4 -->
+                <div class="glass faq-item overflow-hidden transition-all duration-300">
+                    <button class="w-full px-8 py-6 text-left flex justify-between items-center focus:outline-none" onclick="toggleFaq(this)">
+                        <span class="font-bold text-slate-200 tracking-wide">Where can I trade USDS?</span>
+                        <svg class="w-5 h-5 text-slate-500 faq-icon transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="faq-content px-8">
+                        <p class="pb-6 text-slate-400 text-sm leading-relaxed">
+                            USDS is primarily traded on SunSwap, the leading decentralized exchange on the TRON network. You can swap TRX or other stablecoins for USDS instantly by connecting your TronLink or similar wallet.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-16 border-t border-white/5 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center space-x-3 mb-8 md:mb-0 opacity-50">
+                    <div class="w-6 h-6 bg-slate-600 rounded flex items-center justify-center font-bold text-xs text-black">S</div>
+                    <span class="text-sm font-bold tracking-widest uppercase text-slate-300">USD Standard Protocol</span>
+                </div>
+                <div class="flex space-x-12 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                    <a href="https://tronscan.org" class="hover:text-white transition" target="_blank">Explorer</a>
+                    <a href="https://sunswap.com" class="hover:text-white transition" target="_blank">Exchange</a>
+                    <a href="#" class="hover:text-white transition">Documentation</a>
+                </div>
+            </div>
+            <div class="mt-12 text-center text-[10px] text-slate-700 uppercase tracking-widest">
+                © 2024 USD Standard Protocol. Registered on TRON Network.
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        function toggleFaq(button) {
+            const item = button.parentElement;
+            const isActive = item.classList.contains('active');
+            
+            // Close all other items
+            document.querySelectorAll('.faq-item').forEach(faq => {
+                faq.classList.remove('active');
+            });
+
+            // Toggle current item
+            if (!isActive) {
+                item.classList.add('active');
+            }
+        }
+    </script>
+</body>
+</html>
